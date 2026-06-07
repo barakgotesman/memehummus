@@ -14,8 +14,9 @@ export async function getSuggestionUploadUrl(fileName?: string) {
   // Generate a unique public_id for this suggestion
   const publicId = `suggestions/${Date.now()}_${fileName.trim().replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100)}`
 
-  const { signature, timestamp, api_key } = cloudinary.utils.sign_request(
-    { public_id: publicId, folder: '' },
+  const timestamp = Math.round(Date.now() / 1000)
+  const { signature, api_key } = cloudinary.utils.sign_request(
+    { public_id: publicId, timestamp },
     { api_key: process.env.CLOUDINARY_API_KEY!, api_secret: process.env.CLOUDINARY_API_SECRET! }
   )
 

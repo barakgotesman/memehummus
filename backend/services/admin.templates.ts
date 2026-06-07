@@ -133,8 +133,9 @@ export async function getUploadUrl(fileName?: string) {
   const safe = sanitizeFileName(fileName.trim())
   const publicId = `templates/${Date.now()}_${safe.replace(/\.[^.]+$/, '')}`
 
-  const { signature, timestamp, api_key } = cloudinary.utils.sign_request(
-    { public_id: publicId },
+  const timestamp = Math.round(Date.now() / 1000)
+  const { signature, api_key } = cloudinary.utils.sign_request(
+    { public_id: publicId, timestamp },
     { api_key: process.env.CLOUDINARY_API_KEY!, api_secret: process.env.CLOUDINARY_API_SECRET! }
   )
 
