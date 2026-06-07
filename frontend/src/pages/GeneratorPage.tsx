@@ -5,6 +5,7 @@ import { useHistory } from '@/hooks/useHistory'
 import html2canvas from 'html2canvas'
 import { api } from '@/lib/api'
 import Navbar from '@/components/layout/Navbar'
+import Footer from '@/components/layout/Footer'
 import MemeEditor from '@/components/generator/MemeEditor'
 import SimilarTemplates from '@/components/generator/SimilarTemplates'
 import GeneratorInfoSection from '@/components/generator/GeneratorInfoSection'
@@ -430,6 +431,7 @@ export default function GeneratorPage() {
         <GeneratorInfoSection />
         {id && <SimilarTemplates templateId={id} />}
       </main>
+      <Footer />
     </div>
   )
 }

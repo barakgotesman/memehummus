@@ -7,10 +7,15 @@ import adminRouter from './routes/admin.js'
 import suggestionsRouter from './routes/suggestions.js'
 import { errorHandler } from './middleware/error.js'
 
-const app = express()
-const PORT = process.env.PORT ?? 3001
+export const app = express()
 
-app.use(cors({ origin: /^http:\/\/localhost:\d+$/ }))
+const allowedOrigins = [
+  /^http:\/\/localhost:\d+$/,
+  /^https:\/\/.*\.vercel\.app$/,
+  ...(process.env.CLIENT_URL ? [process.env.CLIENT_URL] : []),
+]
+
+app.use(cors({ origin: allowedOrigins }))
 app.use(express.json())
 
 app.use('/api/templates', templatesRouter)
@@ -20,6 +25,8 @@ app.use('/api/admin', adminRouter)
 
 app.use(errorHandler)
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`)
-})
+// Only listen when running directly (not imported by Vercel)
+if (process.env.NODE_ENV !== 'production' || process.env.VERCEL !== '1') {
+  const PORT = process.env.PORT ?? 3001
+  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`))
+}
