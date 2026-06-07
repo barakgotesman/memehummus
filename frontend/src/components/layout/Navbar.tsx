@@ -82,8 +82,8 @@ export default function Navbar() {
                   aria-label="תפריט משתמש"
                 >
                   <img
-                    src={user.user_metadata?.avatar_url as string}
-                    alt={user.user_metadata?.full_name as string}
+                    src={user.photoURL ?? ''}
+                    alt={user.displayName ?? ''}
                     className="h-8 w-8 rounded-full object-cover border border-outline-variant"
                   />
                   <ChevronDown className={`h-3.5 w-3.5 text-on-surface-variant transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
@@ -92,7 +92,7 @@ export default function Navbar() {
                 {userMenuOpen && (
                   <div className="absolute end-0 mt-2 w-48 rounded-xl border border-outline-variant/60 bg-background shadow-lg z-50 py-1 text-right">
                     <div className="px-4 py-2 border-b border-outline-variant/40">
-                      <p className="text-sm font-semibold text-on-surface truncate">{user.user_metadata?.full_name as string}</p>
+                      <p className="text-sm font-semibold text-on-surface truncate">{user.displayName}</p>
                       <p className="text-xs text-on-surface-variant truncate">{user.email}</p>
                     </div>
 

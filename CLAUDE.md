@@ -37,7 +37,11 @@ memehummus/
 │   │   ├── context/           # AuthContext, ThemeContext
 │   │   ├── data/              # Static/mock data
 │   │   ├── hooks/             # Custom React hooks
-│   │   ├── lib/               # API clients, utils
+│   │   ├── lib/
+│   │   │   ├── firebase.ts    # Firebase client SDK (auth)
+│   │   │   ├── api.ts         # Public API calls
+│   │   │   ├── adminApi.ts    # Admin API calls (auth-protected)
+│   │   │   └── utils.ts
 │   │   ├── pages/             # Route-level page components
 │   │   │   └── admin/         # Admin sub-pages
 │   │   ├── styles/            # Global CSS
@@ -56,17 +60,44 @@ memehummus/
 │   ├── routes/                # Route definitions (endpoints only)
 │   ├── services/              # Business logic + DB queries
 │   ├── middleware/            # Auth, error handling
-│   ├── lib/                   # Prisma client, Firebase admin, Cloudinary client, AppError
-│   ├── types/                 # Express type augmentations
+│   ├── lib/
+│   │   ├── firebase.ts        # Firebase Admin SDK (auth token verification)
+│   │   ├── cloudinary.ts      # Cloudinary client (image storage)
+│   │   ├── prisma.ts          # Prisma client singleton
+│   │   └── AppError.ts        # Custom error class
+│   ├── types/                 # Express type augmentations (req.user)
 │   ├── prisma/
 │   │   └── schema.prisma
-│   ├── scripts/               # DB seed scripts
+│   ├── scripts/
+│   │   ├── seedTemplates.mjs  # Seeds template images to Cloudinary + DB
+│   │   ├── create-tables.mjs  # Creates DB tables (run once on new DB)
+│   │   └── set-admin.ts       # Grants isAdmin Firebase custom claim
 │   ├── prisma.config.ts
 │   ├── index.ts               # Server entry point
 │   └── tsconfig.json
 │
 ├── package.json               # Single package — shared node_modules
-└── .env
+└── .env                       # Never committed — see env vars below
+```
+
+### Required environment variables (`.env`)
+```
+DATABASE_URL=          # Neon PostgreSQL connection string
+CLIENT_URL=            # Frontend origin (e.g. http://localhost:5173)
+PORT=3001
+IP_HASH_SALT=          # Random hex string for IP hashing
+
+FIREBASE_SERVICE_ACCOUNT_PATH=  # Path to Firebase service account JSON (never commit the JSON)
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
 ```
 
 ### Dev commands
