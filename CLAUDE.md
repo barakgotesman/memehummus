@@ -12,10 +12,11 @@ A meme hub web app for browsing templates and generating memes easily.
 ## Tech Stack
 
 - **Frontend:** React 18, Tailwind CSS, shadcn/ui, Vite
-- **Backend:** Node.js, Express 5, TypeScript
+- **Backend:** Node.js, Express 5, TypeScript — deployed as a Vercel Serverless Function via `api/index.ts`
 - **Auth:** Firebase (Google OAuth) — `backend/lib/firebase.ts`, `frontend/src/lib/firebase.ts`
 - **Image storage:** Cloudinary — `backend/lib/cloudinary.ts`
 - **Database:** Neon (PostgreSQL) + Prisma 7 ORM (queries via `@prisma/adapter-pg`)
+- **Hosting:** Vercel — frontend (static) + backend (serverless) on one deployment
 - **Language:** TypeScript everywhere — all new files must be `.ts` / `.tsx`, no plain `.js`
 
 ---
@@ -83,11 +84,14 @@ memehummus/
 ### Required environment variables (`.env`)
 ```
 DATABASE_URL=          # Neon PostgreSQL connection string
-CLIENT_URL=            # Frontend origin (e.g. http://localhost:5173)
+CLIENT_URL=            # Frontend origin (e.g. http://localhost:5173 or production URL)
 PORT=3001
 IP_HASH_SALT=          # Random hex string for IP hashing
 
+# Local dev: path to JSON file. Production (Vercel): use FIREBASE_SERVICE_ACCOUNT_JSON instead
 FIREBASE_SERVICE_ACCOUNT_PATH=  # Path to Firebase service account JSON (never commit the JSON)
+FIREBASE_SERVICE_ACCOUNT_JSON=  # Full JSON string of service account (used on Vercel)
+
 CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
@@ -104,6 +108,15 @@ VITE_FIREBASE_APP_ID=
 - `npm run dev` — Vite dev server (port 5173, proxies `/api` → 3001)
 - `npm run server` — Express backend via `tsx` (port 3001)
 - `npm run build` — Production frontend build → `dist/`
+
+### Deployment (Vercel)
+- **Production URL:** https://meme-hummus.vercel.app
+- **Deploy:** `vercel --prod` or push to `main` (once GitHub is connected in Vercel dashboard)
+- **Build command:** `npx prisma generate --schema=backend/prisma/schema.prisma && npm run build`
+- **Serverless entry:** `api/index.ts` imports Express app from `backend/index.ts`
+- **Routing:** `vercel.json` routes `/api/*` → serverless function, everything else → SPA
+- **Prisma:** must run `prisma generate` before build — already wired into `vercel.json` buildCommand
+- **Firebase service account:** stored as `FIREBASE_SERVICE_ACCOUNT_JSON` env var on Vercel (full JSON string)
 
 ---
 
