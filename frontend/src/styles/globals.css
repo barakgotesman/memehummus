@@ -1,0 +1,83 @@
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Placeholder for contentEditable text layers in the meme editor */
+[contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(255, 255, 255, 0.5);
+  text-shadow: none;
+  pointer-events: none;
+  direction: rtl;
+  unicode-bidi: plaintext;
+}
+
+@layer base {
+  :root {
+    --background: #fff8f6;
+    --foreground: #201a18;
+    --surface: #fff8f6;
+    --surface-low: #fef1ed;
+    --surface-container: #f9ebe7;
+    --surface-high: #f3e5e1;
+    --surface-highest: #ede0dc;
+    --on-surface: #201a18;
+    --on-surface-variant: #504534;
+    --outline: #827561;
+    --outline-variant: #d4c4ad;
+    --primary: #7b5800;
+    --primary-container: #f5b82e;
+    --on-primary: #ffffff;
+    --on-primary-container: #684a00;
+    --secondary: #9f4200;
+    --secondary-container: #ff7f36;
+    --on-secondary: #ffffff;
+    --tertiary: #934b19;
+    --tertiary-container: #ffb081;
+    --error: #ba1a1a;
+    --radius-sm: 0.25rem;
+    --radius: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.5rem;
+    --radius-full: 9999px;
+  }
+}
+
+@layer base {
+  .dark {
+    --background: #1a1210;
+    --foreground: #ede0dc;
+    --surface: #1a1210;
+    --surface-low: #231a17;
+    --surface-container: #2c211d;
+    --surface-high: #382a25;
+    --surface-highest: #44332d;
+    --on-surface: #ede0dc;
+    --on-surface-variant: #d4c4ad;
+    --outline: #a8927e;
+    --outline-variant: #504534;
+    --primary: #f5b82e;
+    --primary-container: #7b5800;
+    --on-primary: #201a18;
+    --on-primary-container: #ffd86a;
+    --secondary: #ff9a60;
+    --secondary-container: #7a3200;
+    --on-secondary: #201a18;
+    --tertiary: #ffb081;
+    --tertiary-container: #6b3311;
+    --error: #ffb4ab;
+  }
+}
+
+@layer base {
+  * { box-sizing: border-box; }
+  body {
+    background-color: var(--background);
+    color: var(--on-surface);
+    font-family: 'Heebo', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}

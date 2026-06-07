@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.env
+*.json.bak
+
+# Firebase service account — contains private keys, never commit
+*firebase-adminsdk*.json
+
+# Claude Code / IDE local files
+.claude/
+.agents/
+.junie/
+.mcp.json
+skills-lock.json
+
+# OS
+.DS_Store
+Thumbs.db

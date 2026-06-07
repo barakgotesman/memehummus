@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Template {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  file_path   String
+  status      String   @default("active")
+  created_at  DateTime @default(now()) @db.Timestamptz()
+
+  template_tags      TemplateTag[]
+  template_downloads TemplateDownload[]
+
+  @@map("templates")
+}
+
+model Tag {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String   @unique
+  created_at DateTime @default(now()) @db.Timestamptz()
+
+  template_tags TemplateTag[]
+
+  @@map("tags")
+}
+
+model TemplateTag {
+  template_id String   @db.Uuid
+  tag_id      String   @db.Uuid
+  template    Template @relation(fields: [template_id], references: [id])
+  tag         Tag      @relation(fields: [tag_id], references: [id])
+
+  @@id([template_id, tag_id])
+  @@map("template_tags")
+}
+
+model TemplateDownload {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_id   String   @db.Uuid
+  ip            String
+  downloaded_at DateTime @default(now()) @db.Timestamptz()
+  template      Template @relation(fields: [template_id], references: [id])
+
+  @@map("template_downloads")
+}
+
+model TemplateSuggestion {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String?
+  image_path  String
+  description String?
+  status      String   @default("pending")
+  created_at  DateTime @default(now()) @db.Timestamptz()
+
+  @@map("template_suggestions")
+}
