@@ -47,9 +47,17 @@ export default function TemplatesPage({ getToken }: TemplatesPageProps) {
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || `שגיאת שרת ${res.status}`)
-    const uploadRes = await fetch(data.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+
+    // Cloudinary signed upload requires POST with FormData — not a raw PUT
+    const form = new FormData()
+    form.append('file', file)
+    form.append('public_id', data.publicId)
+    form.append('signature', data.signature)
+    form.append('timestamp', String(data.timestamp))
+    form.append('api_key', data.apiKey)
+    const uploadRes = await fetch(data.uploadUrl, { method: 'POST', body: form })
     if (!uploadRes.ok) throw new Error(`העלאת הקובץ נכשלה (${uploadRes.status})`)
-    return data.path
+    return data.publicId
   }
 
   async function handleSave({ name, description, status, imageFile, tag_ids }: {

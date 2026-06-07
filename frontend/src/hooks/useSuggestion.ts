@@ -26,9 +26,9 @@ export function useSuggestion() {
     setError(null)
     setSubmitting(true)
     try {
-      const { uploadUrl, path } = await api.suggestions.getUploadUrl(imageFile.name)
-      await api.suggestions.uploadFile(imageFile, uploadUrl)
-      await api.suggestions.submit({ email, image_path: path, description })
+      const uploadParams = await api.suggestions.getUploadUrl(imageFile.name)
+      await api.suggestions.uploadFile(imageFile, uploadParams)
+      await api.suggestions.submit({ email, image_path: uploadParams.publicId, description })
       setDone(true)
     } catch (err) {
       setError((err as Error).message)

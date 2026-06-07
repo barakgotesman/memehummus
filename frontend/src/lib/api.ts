@@ -38,17 +38,22 @@ export const api = {
     request(period ? `/api/templates/trending?period=${period}` : '/api/templates/trending'),
 
   suggestions: {
-    getUploadUrl: (fileName: string): Promise<{ uploadUrl: string; path: string }> =>
+    getUploadUrl: (fileName: string): Promise<{ uploadUrl: string; publicId: string; signature: string; timestamp: number; apiKey: string }> =>
       request('/api/suggestions/upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName }),
       }),
 
-    // Direct PUT to Cloudinary — bypasses our server entirely. Content-Type must match the file
-    // or Cloudinary rejects the upload with a format mismatch error.
-    uploadFile: async (file: File, uploadUrl: string): Promise<void> => {
-      const res = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
+    // Cloudinary signed upload requires POST with FormData — not a raw PUT
+    uploadFile: async (file: File, params: { uploadUrl: string; publicId: string; signature: string; timestamp: number; apiKey: string }): Promise<void> => {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('public_id', params.publicId)
+      form.append('signature', params.signature)
+      form.append('timestamp', String(params.timestamp))
+      form.append('api_key', params.apiKey)
+      const res = await fetch(params.uploadUrl, { method: 'POST', body: form })
       if (!res.ok) throw new Error('העלאת הקובץ נכשלה')
     },
 
