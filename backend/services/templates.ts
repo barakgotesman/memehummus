@@ -3,14 +3,25 @@ import prisma from '../lib/prisma.js'
 import cloudinary from '../lib/cloudinary.js'
 import { AppError } from '../lib/AppError.js'
 
+// Same IP downloading the same template within this window counts as one download
 const DEDUP_WINDOW_HOURS = 1
 
+/**
+ * One-way hash of an IP address for privacy-safe deduplication.
+ * We never store raw IPs — only the hash + a salt so the original can't be reversed.
+ * @param ip - Raw IP string (IPv4 or IPv6)
+ */
 function hashIp(ip: string): string {
   return createHash('sha256')
     .update(ip + process.env.IP_HASH_SALT)
     .digest('hex')
 }
 
+/**
+ * Builds an optimized Cloudinary delivery URL for a template image.
+ * fetch_format:auto and quality:auto let Cloudinary choose the best format (WebP/AVIF) per browser.
+ * @param publicId - Cloudinary public_id stored in the DB
+ */
 export function getTemplateImageUrl(publicId: string): string {
   return cloudinary.url(publicId, { fetch_format: 'auto', quality: 'auto' })
 }
@@ -26,6 +37,11 @@ interface RawTemplate {
   template_downloads?: Array<{ id: string }>
 }
 
+/**
+ * Converts a raw Prisma template row into the API response shape.
+ * Computes imageUrl from file_path (Cloudinary public_id) and flattens nested relations.
+ * @param t - Raw DB row, optionally with template_tags and template_downloads included
+ */
 export function normalizeTemplate(t: RawTemplate) {
   return {
     id: t.id,
@@ -45,6 +61,13 @@ const templateInclude = {
   template_downloads: { select: { id: true } },
 } as const
 
+/**
+ * Records a download event, deduplicating by hashed IP within DEDUP_WINDOW_HOURS.
+ * The same IP downloading the same template within the window is silently ignored.
+ * @param templateId - ID of the template being downloaded
+ * @param ip - Raw client IP — will be hashed before storage
+ * @returns { counted: true } if a new download was recorded, { counted: false } if deduplicated
+ */
 export async function recordDownload(templateId: string, ip: string) {
   const ipHash = hashIp(ip)
   const since = new Date(Date.now() - DEDUP_WINDOW_HOURS * 60 * 60 * 1000)
@@ -66,6 +89,11 @@ export async function recordDownload(templateId: string, ip: string) {
   return { counted: true }
 }
 
+/**
+ * Returns templates sorted by download count within an optional time window.
+ * Aggregation is done in memory (not SQL) because Prisma can't ORDER BY a relation count directly.
+ * @param period - 'week' = last 7 days only; anything else = all time
+ */
 export async function getTrendingTemplates({ period = 'all' }: { period?: string } = {}) {
   const since = period === 'week'
     ? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -94,6 +122,13 @@ export async function getTrendingTemplates({ period = 'all' }: { period?: string
     .sort((a, b) => b.download_count - a.download_count)
 }
 
+/**
+ * Lists active templates, with optional tag filter or free-text search.
+ * Search mode runs two queries in parallel — one by template name, one by matching tag names —
+ * then merges results with a Set to deduplicate while preserving name-match priority.
+ * @param tag - Exact tag name to filter by (used in browse/filter mode)
+ * @param search - Free-text search string (matches template names and tag names)
+ */
 export async function listTemplates({ tag, search }: { tag?: string; search?: string } = {}) {
   if (search) {
     const matchingTags = await prisma.tag.findMany({

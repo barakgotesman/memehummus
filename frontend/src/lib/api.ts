@@ -4,6 +4,10 @@ interface RequestOptions extends RequestInit {
   headers?: Record<string, string>
 }
 
+/**
+ * Generic fetch wrapper for public API calls.
+ * Throws on non-2xx responses, using the server's error message when available.
+ */
 async function request<T>(path: string, options?: RequestOptions): Promise<T> {
   const res = await fetch(path, options)
   const contentType = res.headers.get('content-type') ?? ''
@@ -41,6 +45,8 @@ export const api = {
         body: JSON.stringify({ fileName }),
       }),
 
+    // Direct PUT to Cloudinary — bypasses our server entirely. Content-Type must match the file
+    // or Cloudinary rejects the upload with a format mismatch error.
     uploadFile: async (file: File, uploadUrl: string): Promise<void> => {
       const res = await fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
       if (!res.ok) throw new Error('העלאת הקובץ נכשלה')

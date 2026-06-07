@@ -4,6 +4,11 @@ interface RequestOptions extends RequestInit {
   headers?: Record<string, string>
 }
 
+/**
+ * Authenticated fetch wrapper for admin API calls.
+ * Handles 204 No Content (DELETE responses) by returning null without trying to parse JSON.
+ * @param token - Firebase ID token to send as Authorization: Bearer header
+ */
 async function request<T>(path: string, options: RequestOptions = {}, token?: string): Promise<T> {
   const res = await fetch(path, {
     ...options,
@@ -39,6 +44,12 @@ interface ApproveSuggestionBody {
   tag_ids?: string[]
 }
 
+/**
+ * Factory that creates an authenticated API client for admin routes.
+ * Takes a `getToken` function (from AuthContext) so the token is always fresh — never stale from a closure.
+ * All methods go through the internal `auth` wrapper which injects the Bearer token automatically.
+ * @param getToken - Async function that returns the current Firebase ID token
+ */
 export function createAdminApi(getToken: () => Promise<string | undefined>) {
   const auth = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
     const token = await getToken()

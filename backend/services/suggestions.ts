@@ -2,6 +2,12 @@ import prisma from '../lib/prisma.js'
 import cloudinary from '../lib/cloudinary.js'
 import { AppError } from '../lib/AppError.js'
 
+/**
+ * Generates a signed Cloudinary upload URL for a user-submitted template suggestion.
+ * Files land in the suggestions/ folder and are moved to templates/ only on approval.
+ * The client uploads directly to Cloudinary using the returned params — our server is not in the upload path.
+ * @param fileName - Original file name from the client, sanitized for use in the public_id
+ */
 export async function getSuggestionUploadUrl(fileName?: string) {
   if (!fileName?.trim()) throw new AppError('fileName is required')
 
@@ -53,6 +59,14 @@ interface ApproveSuggestionInput {
   tag_ids: string[]
 }
 
+/**
+ * Approves a suggestion by:
+ *   1. Moving the image from suggestions/ → templates/ in Cloudinary (rename = copy + delete)
+ *   2. Creating a new template record (status: 'draft') with the moved image and provided metadata
+ *   3. Updating the suggestion status to 'approved' and recording the new image path
+ * The template is created as 'draft' so the admin can review before publishing.
+ * If the Cloudinary rename fails, the whole operation is aborted to keep storage consistent.
+ */
 export async function approveSuggestion(id: string, { name, description, tag_ids }: ApproveSuggestionInput) {
   const suggestion = await prisma.templateSuggestion.findUnique({
     where: { id },
@@ -91,6 +105,11 @@ export async function approveSuggestion(id: string, { name, description, tag_ids
   return { suggestion: updated, template }
 }
 
+/**
+ * Updates a suggestion's status. Valid values: pending | approved | rejected.
+ * 'approved' should normally go through approveSuggestion() instead, which also creates the template.
+ * This function is used for direct status overrides (e.g. rejecting without review).
+ */
 export async function updateSuggestionStatus(id: string, status: string) {
   const VALID = ['pending', 'approved', 'rejected']
   if (!VALID.includes(status)) throw new AppError(`status must be one of: ${VALID.join(', ')}`)

@@ -22,6 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       setUser(u)
       if (u) {
+        // getIdTokenResult fetches the decoded JWT, which includes custom claims set by the backend.
+        // We check isAdmin here so the UI can gate admin routes without an extra API call.
         const tokenResult = await u.getIdTokenResult()
         setIsAdmin(tokenResult.claims.isAdmin === true)
       } else {
@@ -36,6 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = () => firebaseSignOut(auth)
 
+  // getIdToken() automatically refreshes the token if it's about to expire (< 5 min left).
+  // Returns undefined when no user is signed in — callers should handle that case.
   const getToken = async (): Promise<string | undefined> => {
     return auth.currentUser?.getIdToken()
   }

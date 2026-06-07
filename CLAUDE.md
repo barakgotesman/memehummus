@@ -210,11 +210,36 @@ VITE_FIREBASE_APP_ID=
 
 - Write code that reads clearly without needing explanation.
 - Prefer simple, direct solutions over clever abstractions.
-- Add a comment only when the **why** is non-obvious — not the what.
 - Write notes and reminders directly in the relevant source files as comments, not in CLAUDE.md.
 - Do not over-engineer. If the simplest solution works, use it.
 - Delete unused code immediately. Do not leave commented-out blocks.
 - Think like a senior full-stack engineer: readable, maintainable, pragmatic.
+
+### Comments Policy
+
+**Functions:** Every function must have a JSDoc-style comment describing what it does, its parameters, and its return value. Example:
+```ts
+/**
+ * Generates a signed Cloudinary upload URL for a meme template.
+ * @param folder - Cloudinary folder to upload into
+ * @param publicId - Optional fixed public ID for the asset
+ * @returns Signed upload params (signature, timestamp, api_key)
+ */
+```
+
+**Parameters:** Document non-obvious parameters inline when the name alone doesn't convey the expected shape, unit, or constraint. Example:
+```ts
+// maxAge: seconds until cache expires (0 = no cache)
+function setCacheHeader(res: Response, maxAge: number) {
+```
+
+**Complex logic:** Any block of code that isn't immediately obvious to a reader must have a comment explaining *why* it works that way — not what it does line-by-line. Target: a developer unfamiliar with the codebase should understand the intent within 10 seconds. Example:
+```ts
+// Cloudinary requires the params to be sorted alphabetically before signing
+const sortedParams = Object.keys(params).sort().reduce(...)
+```
+
+**When NOT to comment:** Do not comment self-explanatory code (`// increment counter i++`), TypeScript types that already document the shape, or anything that a good variable name already explains.
 
 ---
 

@@ -153,11 +153,11 @@ function AdminHeader({ activeSection, onMenuOpen }: AdminHeaderProps) {
         {user && (
           <div className="flex items-center gap-2">
             <span className="hidden sm:block text-sm font-medium text-on-surface">
-              {user.user_metadata?.full_name?.split(' ')[0]}
+              {user.displayName?.split(' ')[0]}
             </span>
             <img
-              src={user.user_metadata?.avatar_url}
-              alt={user.user_metadata?.full_name}
+              src={user.photoURL ?? ''}
+              alt={user.displayName ?? ''}
               className="h-8 w-8 rounded-full object-cover border border-outline-variant"
             />
           </div>
