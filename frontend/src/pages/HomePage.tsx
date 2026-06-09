@@ -65,9 +65,10 @@ export default function HomePage() {
               )}
               <a
                 href="/suggest"
+                dir="rtl"
                 className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
               >
-                הצע תבנית חדשה →
+                ← הצע תבנית חדשה
               </a>
             </div>
           )}
