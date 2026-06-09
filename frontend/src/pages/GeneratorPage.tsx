@@ -102,15 +102,21 @@ export default function GeneratorPage() {
   async function captureCanvas() {
     setSelectedId(null)
     await new Promise(r => setTimeout(r, 80))
-    return html2canvas(editorRef.current!, {
+    // Capture only the image container (containerRef inside MemeEditor) to avoid
+    // viewport-scroll misalignment. We pass x/y relative to the document so
+    // html2canvas clips to exactly the visible editor area regardless of scroll.
+    const el = editorRef.current!
+    const rect = el.getBoundingClientRect()
+    return html2canvas(el, {
       useCORS: true,
       allowTaint: false,
       scale: 2,
       backgroundColor: null,
-      scrollX: -window.scrollX,
-      scrollY: -window.scrollY,
-      windowWidth: document.documentElement.scrollWidth,
-      windowHeight: document.documentElement.scrollHeight,
+      logging: false,
+      x: rect.left + window.scrollX,
+      y: rect.top + window.scrollY,
+      width: rect.width,
+      height: rect.height,
     })
   }
 
@@ -222,7 +228,8 @@ export default function GeneratorPage() {
         </button>
 
         <div className="flex flex-col gap-6 lg:flex-row">
-          <div className="w-full overflow-hidden rounded-xl shadow-card lg:w-3/5">
+          {/* overflow:clip keeps rounded corners visually without creating a stacking-context clipping box that html2canvas misreads */}
+          <div className="w-full rounded-xl shadow-card lg:w-3/5" style={{ overflow: 'clip' }}>
             <MemeEditor
               imageUrl={template.imageUrl}
               textLayers={textLayers}

@@ -52,9 +52,18 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
     }
   }, [layer.text])
 
-  function startDrag(e: React.MouseEvent) {
+  /** Returns clientX/clientY from either a MouseEvent or a single-touch TouchEvent */
+  function getEventCoords(e: MouseEvent | TouchEvent): { clientX: number; clientY: number } {
+    if ('touches' in e) {
+      const t = e.touches[0] ?? e.changedTouches[0]
+      return { clientX: t.clientX, clientY: t.clientY }
+    }
+    return { clientX: e.clientX, clientY: e.clientY }
+  }
+
+  function startDrag(e: React.MouseEvent | React.TouchEvent) {
     if ((e.target as HTMLElement).closest('[data-resize]') || (e.target as HTMLElement).closest('[data-delete]')) return
-    // If currently editing text, exit edit mode and wait for the next mousedown to drag
+    // If currently editing text, exit edit mode; next tap/click will drag
     if (editing) {
       editRef.current?.blur()
       return
@@ -62,23 +71,25 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
     e.preventDefault()
     e.stopPropagation()
     onSelect()
-    dragState.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      origX: layer.x,
-      origY: layer.y,
-    }
+    const { clientX, clientY } = 'touches' in e
+      ? { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }
+      : { clientX: (e as React.MouseEvent).clientX, clientY: (e as React.MouseEvent).clientY }
+    dragState.current = { startX: clientX, startY: clientY, origX: layer.x, origY: layer.y }
     window.addEventListener('mousemove', onDragMove)
     window.addEventListener('mouseup', stopDrag)
+    window.addEventListener('touchmove', onDragMove, { passive: false })
+    window.addEventListener('touchend', stopDrag)
   }
 
-  function onDragMove(e: MouseEvent) {
+  function onDragMove(e: MouseEvent | TouchEvent) {
     if (!dragState.current) return
     const container = containerRef.current
     if (!container) return
+    if ('touches' in e) e.preventDefault()
     const rect = container.getBoundingClientRect()
-    const dx = e.clientX - dragState.current.startX
-    const dy = e.clientY - dragState.current.startY
+    const { clientX, clientY } = getEventCoords(e)
+    const dx = clientX - dragState.current.startX
+    const dy = clientY - dragState.current.startY
     const newX = Math.max(0, Math.min(rect.width - layer.width, dragState.current.origX + dx))
     const newY = Math.max(0, Math.min(rect.height - layer.fontSize * 1.4, dragState.current.origY + dy))
     dragState.current.lastX = newX
@@ -93,23 +104,26 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
     dragState.current = null
     window.removeEventListener('mousemove', onDragMove)
     window.removeEventListener('mouseup', stopDrag)
+    window.removeEventListener('touchmove', onDragMove)
+    window.removeEventListener('touchend', stopDrag)
   }
 
-  function startResize(e: React.MouseEvent) {
+  function startResize(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault()
     e.stopPropagation()
-    resizeState.current = {
-      startX: e.clientX,
-      origWidth: layer.width,
-      origFontSize: layer.fontSize,
-    }
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as React.MouseEvent).clientX
+    resizeState.current = { startX: clientX, origWidth: layer.width, origFontSize: layer.fontSize }
     window.addEventListener('mousemove', onResizeMove)
     window.addEventListener('mouseup', stopResize)
+    window.addEventListener('touchmove', onResizeMove, { passive: false })
+    window.addEventListener('touchend', stopResize)
   }
 
-  function onResizeMove(e: MouseEvent) {
+  function onResizeMove(e: MouseEvent | TouchEvent) {
     if (!resizeState.current) return
-    const dx = e.clientX - resizeState.current.startX
+    if ('touches' in e) e.preventDefault()
+    const { clientX } = getEventCoords(e)
+    const dx = clientX - resizeState.current.startX
     const newWidth = Math.max(80, resizeState.current.origWidth + dx)
     const newFontSize = Math.max(14, Math.min(80, resizeState.current.origFontSize + Math.round(dx / 8)))
     resizeState.current.lastWidth = newWidth
@@ -124,19 +138,26 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
     resizeState.current = null
     window.removeEventListener('mousemove', onResizeMove)
     window.removeEventListener('mouseup', stopResize)
+    window.removeEventListener('touchmove', onResizeMove)
+    window.removeEventListener('touchend', stopResize)
   }
 
   useEffect(() => () => {
     window.removeEventListener('mousemove', onDragMove)
     window.removeEventListener('mouseup', stopDrag)
+    window.removeEventListener('touchmove', onDragMove)
+    window.removeEventListener('touchend', stopDrag)
     window.removeEventListener('mousemove', onResizeMove)
     window.removeEventListener('mouseup', stopResize)
+    window.removeEventListener('touchmove', onResizeMove)
+    window.removeEventListener('touchend', stopResize)
   }, [])
 
   return (
     <div
       ref={layerRef}
       onMouseDown={startDrag}
+      onTouchStart={startDrag}
       onClick={e => { e.stopPropagation(); onSelect() }}
       style={{
         position: 'absolute',
@@ -181,6 +202,20 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
         suppressContentEditableWarning
         onMouseDown={e => { if (editing) e.stopPropagation() }}
         onDoubleClick={e => { e.stopPropagation(); setEditing(true); editRef.current?.focus() }}
+        onTouchEnd={e => {
+          // Double-tap to enter edit mode on mobile
+          if (!editing && e.currentTarget.dataset.lastTap) {
+            const last = Number(e.currentTarget.dataset.lastTap)
+            if (Date.now() - last < 400) {
+              e.stopPropagation()
+              setEditing(true)
+              editRef.current?.focus()
+              delete e.currentTarget.dataset.lastTap
+              return
+            }
+          }
+          e.currentTarget.dataset.lastTap = String(Date.now())
+        }}
         onInput={e => onChange({ text: (e.currentTarget as HTMLDivElement).innerText })}
         dir="auto"
         style={{
@@ -212,6 +247,7 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
         <div
           data-resize
           onMouseDown={startResize}
+          onTouchStart={startResize}
           style={{
             position: 'absolute',
             bottom: -6,
