@@ -42,9 +42,15 @@ export function useHistory<T>(initial: T) {
     })
   }, [])
 
+  const reset = useCallback((value: T) => {
+    past.current = []
+    future.current = []
+    setCurrent(value)
+  }, [])
+
   // canUndo/canRedo are derived from refs — stable during render
   const canUndo = () => past.current.length > 0
   const canRedo = () => future.current.length > 0
 
-  return { current, set, setSilent, undo, redo, canUndo, canRedo }
+  return { current, set, setSilent, undo, redo, canUndo, canRedo, reset }
 }

@@ -16,7 +16,9 @@ router.use(requireAdmin)
 
 router.get('/templates', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    res.json(await listTemplates())
+    // Admin needs all templates — pass a high limit so pagination doesn't truncate
+    const { data } = await listTemplates({ limit: 10000 })
+    res.json(data)
   } catch (err) {
     next(err)
   }

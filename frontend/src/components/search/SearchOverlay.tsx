@@ -47,8 +47,8 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
   useEffect(() => {
     if (!debouncedQuery.trim()) { setResults([]); return }
     setLoading(true)
-    api.getTemplates({ search: debouncedQuery })
-      .then((data) => { setResults(data.slice(0, 6)); setLoading(false) })
+    api.getTemplates({ search: debouncedQuery, limit: 6 })
+      .then(({ data }) => { setResults(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [debouncedQuery])
 

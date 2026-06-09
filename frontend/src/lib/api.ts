@@ -20,10 +20,12 @@ async function request<T>(path: string, options?: RequestOptions): Promise<T> {
 }
 
 export const api = {
-  getTemplates: ({ tag, search }: { tag?: string | null; search?: string } = {}): Promise<Template[]> => {
+  getTemplates: ({ tag, search, limit, offset }: { tag?: string | null; search?: string; limit?: number; offset?: number } = {}): Promise<{ data: Template[]; hasMore: boolean }> => {
     const params = new URLSearchParams()
     if (tag) params.set('tag', tag)
     if (search) params.set('search', search)
+    if (limit !== undefined) params.set('limit', String(limit))
+    if (offset !== undefined) params.set('offset', String(offset))
     const qs = params.toString()
     return request(qs ? `/api/templates?${qs}` : '/api/templates')
   },

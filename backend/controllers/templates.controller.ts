@@ -3,9 +3,14 @@ import { listTemplates, getTemplate, recordDownload, getTrendingTemplates, getSi
 
 export async function index(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { tag, search } = req.query as { tag?: string; search?: string }
-    const templates = await listTemplates({ tag, search })
-    res.json(templates)
+    const { tag, search, limit, offset } = req.query as { tag?: string; search?: string; limit?: string; offset?: string }
+    const result = await listTemplates({
+      tag,
+      search,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      offset: offset ? parseInt(offset, 10) : undefined,
+    })
+    res.json(result)
   } catch (err) {
     next(err)
   }

@@ -11,7 +11,7 @@ import { useTags } from '@/hooks/useTags'
 
 export default function HomePage() {
   const { activeTag, setActiveTag } = useTemplateFilter()
-  const { templates, loading, error } = useTemplates(activeTag)
+  const { templates, loading, loadingMore, error, hasMore, loadMore } = useTemplates(activeTag)
   const { tags } = useTags()
 
   const categories = ['הכל', ...tags.map((t) => t.name)]
@@ -53,10 +53,22 @@ export default function HomePage() {
           )}
 
           {!loading && !error && templates.length > 0 && (
-            <div className="mt-10 flex justify-center">
-              <button className="rounded-full border-2 border-outline px-8 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-high transition-colors">
-                טען עוד דאנקות
-              </button>
+            <div className="mt-10 flex flex-col items-center gap-4">
+              {hasMore && (
+                <button
+                  onClick={loadMore}
+                  disabled={loadingMore}
+                  className="rounded-full border-2 border-outline px-8 py-2.5 text-sm font-bold text-on-surface hover:bg-surface-high transition-colors disabled:opacity-60"
+                >
+                  {loadingMore ? 'טוען...' : 'טען עוד דאנקות'}
+                </button>
+              )}
+              <a
+                href="/suggest"
+                className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+              >
+                הצע תבנית חדשה →
+              </a>
             </div>
           )}
         </section>

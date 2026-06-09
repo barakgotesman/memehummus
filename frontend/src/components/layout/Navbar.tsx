@@ -1,4 +1,4 @@
-import { Search, LogOut, Menu, ShieldCheck, ChevronDown, Sun, Moon } from 'lucide-react'
+import { Search, LogOut, ShieldCheck, ChevronDown, Sun, Moon } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -10,7 +10,6 @@ const NAV_LINKS = [
 ]
 
 export default function Navbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
@@ -31,14 +30,6 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur border-b border-outline-variant/40">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-6">
-
-          <button
-            className="flex md:hidden items-center text-on-surface"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="תפריט"
-          >
-            <Menu className="h-6 w-6" />
-          </button>
 
           <a href="/" className="flex items-center gap-2">
             <img src="/logo.png" alt="Meme Hummus" className="h-9 w-9 object-contain" />
@@ -67,15 +58,18 @@ export default function Navbar() {
             >
               {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
+            {/* Search hidden on mobile — appears in BottomNav instead */}
             <button
               aria-label="חיפוש"
               onClick={() => setSearchOpen(true)}
-              className="text-on-surface-variant hover:text-on-surface transition-colors"
+              className="hidden md:block text-on-surface-variant hover:text-on-surface transition-colors"
             >
               <Search className="h-5 w-5" />
             </button>
+
             {user ? (
-              <div className="relative" ref={userMenuRef}>
+              /* Avatar only shown on desktop — mobile uses BottomNav "אני" tab */
+              <div className="relative hidden md:block" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen(v => !v)}
                   className="flex items-center gap-1.5 rounded-full hover:bg-surface-variant transition-colors p-0.5 pe-2"
@@ -86,7 +80,8 @@ export default function Navbar() {
                     alt={user.displayName ?? ''}
                     className="h-8 w-8 rounded-full object-cover border border-outline-variant"
                   />
-                  <ChevronDown className={`h-3.5 w-3.5 text-on-surface-variant transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  {/* Chevron only visible on desktop */}
+                  <ChevronDown className={`hidden md:block h-3.5 w-3.5 text-on-surface-variant transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {userMenuOpen && (
@@ -118,26 +113,19 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <button
-                onClick={signInWithGoogle}
-                className="flex items-center gap-2 rounded-full border border-outline-variant px-3 py-1.5 text-sm font-semibold text-on-surface hover:bg-surface-variant transition-colors"
-              >
-                <GoogleIcon />
-                כניסה
-              </button>
+              <>
+                {/* Desktop: Google sign-in button */}
+                <button
+                  onClick={signInWithGoogle}
+                  className="hidden md:flex items-center gap-2 rounded-full border border-outline-variant px-3 py-1.5 text-sm font-semibold text-on-surface hover:bg-surface-variant transition-colors"
+                >
+                  <GoogleIcon />
+                  כניסה
+                </button>
+              </>
             )}
           </div>
         </div>
-
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-outline-variant/40 bg-background px-4 py-3 flex flex-col gap-3 text-right">
-            {NAV_LINKS.map(({ label, href }) => (
-              <a key={label} href={href} className="text-sm font-semibold text-on-surface-variant">
-                {label}
-              </a>
-            ))}
-          </div>
-        )}
       </header>
 
       {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}

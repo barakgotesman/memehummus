@@ -122,14 +122,24 @@ export async function getTrendingTemplates({ period = 'all' }: { period?: string
     .sort((a, b) => b.download_count - a.download_count)
 }
 
+const DEFAULT_PAGE_SIZE = 15
+
 /**
- * Lists active templates, with optional tag filter or free-text search.
+ * Lists active templates with pagination, optional tag filter, or free-text search.
+ * Returns `{ data, hasMore }` so the client knows whether more pages exist.
  * Search mode runs two queries in parallel — one by template name, one by matching tag names —
- * then merges results with a Set to deduplicate while preserving name-match priority.
- * @param tag - Exact tag name to filter by (used in browse/filter mode)
+ * then merges and deduplicates while preserving name-match priority.
+ * @param tag - Exact tag name to filter by
  * @param search - Free-text search string (matches template names and tag names)
+ * @param limit - Max items to return (default 15)
+ * @param offset - Number of items to skip for pagination
  */
-export async function listTemplates({ tag, search }: { tag?: string; search?: string } = {}) {
+export async function listTemplates({
+  tag,
+  search,
+  limit = DEFAULT_PAGE_SIZE,
+  offset = 0,
+}: { tag?: string; search?: string; limit?: number; offset?: number } = {}) {
   if (search) {
     const matchingTags = await prisma.tag.findMany({
       where: { name: { contains: search, mode: 'insensitive' } },
@@ -160,26 +170,40 @@ export async function listTemplates({ tag, search }: { tag?: string; search?: st
     for (const t of [...byName, ...byTag]) {
       if (!seen.has(t.id)) { seen.add(t.id); merged.push(t) }
     }
-    return merged.map(normalizeTemplate)
+    // Paginate the merged search results in memory
+    const page = merged.slice(offset, offset + limit)
+    return { data: page.map(normalizeTemplate), hasMore: offset + limit < merged.length }
   }
 
   if (tag) {
     const tagRow = await prisma.tag.findFirst({ where: { name: tag } })
     if (!tagRow) throw new AppError(`tag "${tag}" not found`, 404)
 
-    const templates = await prisma.template.findMany({
-      where: { template_tags: { some: { tag_id: tagRow.id } } },
-      orderBy: { created_at: 'desc' },
-      include: templateInclude,
-    })
-    return templates.map(normalizeTemplate)
+    const [templates, total] = await Promise.all([
+      prisma.template.findMany({
+        where: { template_tags: { some: { tag_id: tagRow.id } } },
+        orderBy: { created_at: 'desc' },
+        include: templateInclude,
+        take: limit,
+        skip: offset,
+      }),
+      prisma.template.count({
+        where: { template_tags: { some: { tag_id: tagRow.id } } },
+      }),
+    ])
+    return { data: templates.map(normalizeTemplate), hasMore: offset + limit < total }
   }
 
-  const templates = await prisma.template.findMany({
-    orderBy: { created_at: 'desc' },
-    include: templateInclude,
-  })
-  return templates.map(normalizeTemplate)
+  const [templates, total] = await Promise.all([
+    prisma.template.findMany({
+      orderBy: { created_at: 'desc' },
+      include: templateInclude,
+      take: limit,
+      skip: offset,
+    }),
+    prisma.template.count(),
+  ])
+  return { data: templates.map(normalizeTemplate), hasMore: offset + limit < total }
 }
 
 // Returns templates that share at least one tag with the given template.

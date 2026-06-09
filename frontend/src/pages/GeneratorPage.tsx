@@ -6,6 +6,7 @@ import html2canvas from 'html2canvas'
 import { api } from '@/lib/api'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
+import BottomNav from '@/components/layout/BottomNav'
 import MemeEditor from '@/components/generator/MemeEditor'
 import SimilarTemplates from '@/components/generator/SimilarTemplates'
 import GeneratorInfoSection from '@/components/generator/GeneratorInfoSection'
@@ -40,8 +41,16 @@ export default function GeneratorPage() {
       .finally(() => setLoadingTemplate(false))
   }, [id])
 
-  const { current: textLayers, set: setTextLayers, setSilent: moveTextLayers, undo, redo, canUndo, canRedo } = useHistory<TextLayer[]>([])
+  const { current: textLayers, set: setTextLayers, setSilent: moveTextLayers, undo, redo, canUndo, canRedo, reset: resetLayers } = useHistory<TextLayer[]>([])
   const [dankStrip, setDankStrip] = useState<DankStrip | null>(null)
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+
+  // Reset canvas when navigating to a different template
+  useEffect(() => {
+    resetLayers([])
+    setDankStrip(null)
+    setSelectedId(null)
+  }, [id])
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -51,7 +60,6 @@ export default function GeneratorPage() {
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
   }, [undo, redo])
-  const [selectedId, setSelectedId] = useState<number | null>(null)
   const [downloading, setDownloading] = useState(false)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const [sharing, setSharing] = useState(false)
@@ -432,6 +440,7 @@ export default function GeneratorPage() {
         {id && <SimilarTemplates templateId={id} />}
       </main>
       <Footer />
+      <BottomNav />
     </div>
   )
 }
