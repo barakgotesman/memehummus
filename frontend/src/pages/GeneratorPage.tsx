@@ -102,9 +102,8 @@ export default function GeneratorPage() {
   async function captureCanvas() {
     setSelectedId(null)
     await new Promise(r => setTimeout(r, 80))
-    // Capture only the image container (containerRef inside MemeEditor) to avoid
-    // viewport-scroll misalignment. We pass x/y relative to the document so
-    // html2canvas clips to exactly the visible editor area regardless of scroll.
+    // x/y in html2canvas are content scroll offsets, not element position — never pass them.
+    // width/height clip overflow (shadows, selection handles) to the element's rendered bounds.
     const el = editorRef.current!
     const rect = el.getBoundingClientRect()
     return html2canvas(el, {
@@ -113,10 +112,8 @@ export default function GeneratorPage() {
       scale: 2,
       backgroundColor: null,
       logging: false,
-      x: rect.left + window.scrollX,
-      y: rect.top + window.scrollY,
-      width: rect.width,
-      height: rect.height,
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
     })
   }
 
