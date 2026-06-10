@@ -164,9 +164,14 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
         left: layer.x,
         top: layer.y,
         width: layer.width,
-        cursor: 'move',
+        cursor: editing ? 'text' : 'move',
         userSelect: 'none',
-        outline: isSelected ? '2px dashed rgba(255,255,255,0.8)' : 'none',
+        // Blue solid border in edit mode; white dashed when just selected
+        outline: editing
+          ? '2px solid rgba(100,160,255,0.9)'
+          : isSelected
+            ? '2px dashed rgba(255,255,255,0.8)'
+            : 'none',
         overflow: 'visible',
         zIndex: isSelected ? 10 : 1,
       }}
@@ -242,6 +247,28 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
         }}
         data-placeholder="הקלד טקסט..."
       />
+
+      {/* Hint shown when selected but not in edit mode.
+          Flips below the layer when it's too close to the top edge to avoid canvas clipping. */}
+      {isSelected && !editing && (
+        <div
+          style={{
+            position: 'absolute',
+            ...(layer.y < 30 ? { top: '100%', marginTop: 4 } : { top: -22 }),
+            left: 0,
+            right: 0,
+            textAlign: 'center',
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.85)',
+            textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          לחץ פעמיים לעריכה • גרור להזזה
+        </div>
+      )}
 
       {isSelected && (
         <div

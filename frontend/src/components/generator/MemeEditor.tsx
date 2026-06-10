@@ -31,8 +31,8 @@ export default function MemeEditor({
 }: MemeEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  function deselectAll(e: React.MouseEvent) {
-    if (e.target === e.currentTarget) onSelect(null)
+  function deselectAll() {
+    onSelect(null)
   }
 
   return (
@@ -48,21 +48,30 @@ export default function MemeEditor({
             alignItems: 'center',
           }}
         >
-          <input
+          <textarea
             value={dankStrip.text}
-            onChange={e => onDankChange({ text: e.target.value })}
+            onChange={e => {
+              onDankChange({ text: e.target.value })
+              // Auto-resize: reset height first so shrinking works too
+              e.target.style.height = 'auto'
+              e.target.style.height = e.target.scrollHeight + 'px'
+            }}
             dir="auto"
             placeholder="כתוב משהו דאנקי..."
+            rows={1}
             style={{
               width: '100%',
               border: 'none',
               outline: 'none',
+              resize: 'none',
+              overflow: 'hidden',
               fontFamily: 'Impact, Arial Black, sans-serif',
               fontSize: 22,
               fontWeight: 'bold',
               color: '#000',
               background: 'transparent',
               textAlign: 'center',
+              lineHeight: 1.3,
             }}
           />
         </div>
