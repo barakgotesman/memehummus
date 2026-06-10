@@ -34,6 +34,13 @@ export interface DankStrip {
   text: string
 }
 
+export interface CropRegion {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface Suggestion {
   id: string
   email?: string | null

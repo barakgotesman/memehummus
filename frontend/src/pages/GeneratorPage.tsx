@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { ArrowRight, Download, Plus, Flame, Trash2, Copy, Share2, Bold, Italic, Underline, Undo2, Redo2 } from 'lucide-react'
+import { ArrowRight, Download, Plus, Flame, Trash2, Copy, Share2, Bold, Italic, Underline, Undo2, Redo2, Crop } from 'lucide-react'
 import { useHistory } from '@/hooks/useHistory'
 import { api } from '@/lib/api'
 import Navbar from '@/components/layout/Navbar'
@@ -10,7 +10,7 @@ import MemeEditor from '@/components/generator/MemeEditor'
 import SimilarTemplates from '@/components/generator/SimilarTemplates'
 import GeneratorInfoSection from '@/components/generator/GeneratorInfoSection'
 import FontFamilyPicker from '@/components/generator/FontFamilyPicker'
-import type { Template, TextLayer, DankStrip } from '@/types'
+import type { Template, TextLayer, DankStrip, CropRegion } from '@/types'
 
 let nextId = 1
 
@@ -49,6 +49,8 @@ export default function GeneratorPage() {
     resetLayers([])
     setDankStrip(null)
     setSelectedId(null)
+    setCropRegion(null)
+    setCropMode(false)
   }, [id])
 
   useEffect(() => {
@@ -62,18 +64,31 @@ export default function GeneratorPage() {
   const [downloading, setDownloading] = useState(false)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
   const [sharing, setSharing] = useState(false)
+  const [cropMode, setCropMode] = useState(false)
+  const [cropRegion, setCropRegion] = useState<CropRegion | null>(null)
   const editorRef = useRef<HTMLDivElement>(null)
 
   const addText = useCallback(() => {
-    // Spread layers vertically so they don't overlap — cycle through 4 rows
-    const containerH = editorRef.current?.offsetHeight ?? 400
+    const containerEl = editorRef.current?.querySelector('[data-meme-container]') as HTMLElement | null
+    const containerW = parseFloat(containerEl?.dataset.trueWidth ?? '0') || containerEl?.offsetWidth || 400
+    const containerH = parseFloat(containerEl?.dataset.trueHeight ?? '0') || containerEl?.offsetHeight || 400
+
+    // When crop is active the container is visually scaled up — scale fontSize down to compensate
+    // so text added after cropping appears the same visual size as on the full image.
+    const cropScale = cropRegion ? containerW / cropRegion.width : 1
+    const baseFontSize = Math.round(36 / cropScale)
+
     const slots = [0.1, 0.35, 0.6, 0.85]
-    const y = Math.round(containerH * slots[textLayers.length % slots.length])
+    // Y position relative to full image, mapped through crop region
+    const cropOffsetY = cropRegion?.y ?? 0
+    const cropH = cropRegion?.height ?? containerH
+    const y = Math.round(cropOffsetY + cropH * slots[textLayers.length % slots.length])
+
     const defaultColor = template?.imageUrl ? '#ffffff' : '#000000'
-    const layer = makeLayer(40, y, defaultColor)
+    const layer = { ...makeLayer(cropRegion?.x ?? 40, y, defaultColor), fontSize: baseFontSize }
     setTextLayers(prev => [...prev, layer])
     setSelectedId(layer.id)
-  }, [textLayers.length, template?.imageUrl])
+  }, [textLayers.length, template?.imageUrl, cropRegion])
 
   // Style changes (font, color, size, bold/italic/underline) commit to history
   const updateLayer = useCallback((id: number, patch: Partial<TextLayer>) => {
@@ -136,12 +151,12 @@ export default function GeneratorPage() {
     const naturalW = imgEl?.naturalWidth ?? 800
     const naturalH = imgEl?.naturalHeight ?? 600
 
-    // Displayed container size — used to scale layer.x/y/width/fontSize to canvas coords
-    const containerRect = (containerEl ?? editorEl).getBoundingClientRect()
-    const containerW = containerRect.width
-    const containerH = containerRect.height
-    const scaleX = naturalW / containerW
-    const scaleY = naturalH / containerH
+    // Use true (pre-transform) container dimensions stored by ResizeObserver in data attributes.
+    // getBoundingClientRect() would return scaled dimensions when a crop transform is active.
+    const trueW = parseFloat(containerEl?.dataset.trueWidth ?? '0') || (containerEl ?? editorEl).getBoundingClientRect().width
+    const trueH = parseFloat(containerEl?.dataset.trueHeight ?? '0') || (containerEl ?? editorEl).getBoundingClientRect().height
+    const scaleX = naturalW / trueW
+    const scaleY = naturalH / trueH
 
     // Pre-calculate dank strip height using a throw-away canvas so we never resize
     // the real canvas after creation (resizing resets the entire context).
@@ -249,19 +264,54 @@ export default function GeneratorPage() {
       ctx.restore()
     }
 
-    // Watermark — bottom-left of the image area (left in canvas = left in exported PNG)
-    ctx.save()
-    ctx.font = `bold ${Math.round(13 * scaleY)}px Arial, sans-serif`
-    ctx.fillStyle = 'rgba(255,255,255,0.75)'
-    ctx.shadowColor = 'rgba(0,0,0,0.6)'
-    ctx.shadowBlur = 3
-    ctx.shadowOffsetX = 0
-    ctx.shadowOffsetY = 1
-    ctx.direction = 'ltr'
-    ctx.textAlign = 'left'
-    ctx.textBaseline = 'bottom'
-    ctx.fillText('@memeHummus', 10, canvas.height - 6)
-    ctx.restore()
+    /**
+     * Draws the @memeHummus watermark on a given canvas context.
+     * Called after cropping so the watermark always lands at the final bottom-left.
+     */
+    function drawWatermark(targetCtx: CanvasRenderingContext2D, targetH: number) {
+      targetCtx.save()
+      targetCtx.font = `bold ${Math.round(13 * scaleY)}px Arial, sans-serif`
+      targetCtx.fillStyle = 'rgba(255,255,255,0.75)'
+      targetCtx.shadowColor = 'rgba(0,0,0,0.6)'
+      targetCtx.shadowBlur = 3
+      targetCtx.shadowOffsetX = 0
+      targetCtx.shadowOffsetY = 1
+      targetCtx.direction = 'ltr'
+      targetCtx.textAlign = 'left'
+      targetCtx.textBaseline = 'bottom'
+      targetCtx.fillText('@memeHummus', 10, targetH - 6)
+      targetCtx.restore()
+    }
+
+    // Apply crop: copy only the selected region into a new canvas, then add watermark.
+    // When a dank strip is also present (imageOffsetY > 0), scale it to the crop width
+    // and include it above the cropped image so the strip isn't lost in the export.
+    if (cropRegion) {
+      const cropX = Math.round(cropRegion.x * scaleX)
+      const cropY = Math.round(cropRegion.y * scaleY) + imageOffsetY
+      const cropW = Math.round(cropRegion.width * scaleX)
+      const cropH = Math.round(cropRegion.height * scaleY)
+      const cropped = document.createElement('canvas')
+      cropped.width = cropW
+      const croppedCtx = cropped.getContext('2d')!
+
+      if (imageOffsetY > 0) {
+        // Scale the dank strip height proportionally to match the new crop width
+        const dankScaledH = Math.round(imageOffsetY * cropW / naturalW)
+        cropped.height = dankScaledH + cropH
+        croppedCtx.drawImage(canvas, 0, 0, naturalW, imageOffsetY, 0, 0, cropW, dankScaledH)
+        croppedCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, dankScaledH, cropW, cropH)
+        drawWatermark(croppedCtx, cropped.height)
+      } else {
+        cropped.height = cropH
+        croppedCtx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH)
+        drawWatermark(croppedCtx, cropH)
+      }
+
+      return cropped
+    }
+
+    drawWatermark(ctx, canvas.height)
 
     return canvas
   }
@@ -403,6 +453,33 @@ export default function GeneratorPage() {
                 <span className="text-[10px] font-bold">דאנק</span>
               </button>
 
+              {/* Crop button — always enters crop mode; separate clear button appears when crop is applied */}
+              <div className="flex flex-1 flex-col gap-1">
+                <button
+                  onClick={() => { setCropMode(true) }}
+                  title={cropMode ? 'בחר אזור לחיתוך' : cropRegion ? 'חתוך מחדש' : 'חתוך תמונה'}
+                  className={`flex w-full flex-col items-center gap-1 rounded-lg py-2.5 transition-colors ${
+                    cropMode
+                      ? 'bg-tertiary text-on-tertiary hover:bg-tertiary/90'
+                      : cropRegion
+                        ? 'bg-tertiary-container text-on-tertiary-container hover:bg-tertiary-container/80'
+                        : 'bg-surface-high text-on-surface hover:bg-surface-highest'
+                  }`}
+                >
+                  <Crop className="h-5 w-5" />
+                  <span className="text-[10px] font-bold">{cropMode ? 'בחר' : cropRegion ? 'חתוך מחדש' : 'חתוך'}</span>
+                </button>
+                {cropRegion && !cropMode && (
+                  <button
+                    onClick={() => { setCropRegion(null); setCropMode(false) }}
+                    title="נקה חיתוך"
+                    className="w-full rounded-md bg-surface-high py-0.5 text-[10px] font-bold text-error hover:bg-surface-highest transition-colors"
+                  >
+                    נקה
+                  </button>
+                )}
+              </div>
+
               <button
                 onClick={undo}
                 disabled={!canUndo()}
@@ -438,6 +515,9 @@ export default function GeneratorPage() {
                 onLayerDelete={deleteLayer}
                 onDankChange={patch => setDankStrip(prev => prev ? { ...prev, ...patch } : prev)}
                 editorRef={editorRef}
+                cropMode={cropMode}
+                cropRegion={cropRegion}
+                onCropCommit={region => { setCropRegion(region); setCropMode(false) }}
               />
             </div>
 
@@ -563,21 +643,31 @@ export default function GeneratorPage() {
                     </label>
                   </div>
 
-                  {/* Font size slider */}
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-on-surface-variant">גודל</span>
-                      <span className="text-xs tabular-nums text-on-surface-variant">{selectedLayer.fontSize}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={14}
-                      max={80}
-                      value={selectedLayer.fontSize}
-                      onChange={e => updateLayer(selectedId!, { fontSize: Number(e.target.value) })}
-                      className="accent-primary w-full"
-                    />
-                  </div>
+                  {/* Font size slider — values are in visual pixels (accounting for crop scale) */}
+                  {(() => {
+                    const containerEl = editorRef.current?.querySelector('[data-meme-container]') as HTMLElement | null
+                    const containerW = parseFloat(containerEl?.dataset.trueWidth ?? '0') || 400
+                    const cropScale = cropRegion ? containerW / cropRegion.width : 1
+                    const visualSize = Math.round(selectedLayer.fontSize * cropScale)
+                    const visualMin = Math.round(14 * cropScale)
+                    const visualMax = Math.round(80 * cropScale)
+                    return (
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-on-surface-variant">גודל</span>
+                          <span className="text-xs tabular-nums text-on-surface-variant">{visualSize}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={visualMin}
+                          max={visualMax}
+                          value={visualSize}
+                          onChange={e => updateLayer(selectedId!, { fontSize: Math.round(Number(e.target.value) / cropScale) })}
+                          className="accent-primary w-full"
+                        />
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             )}

@@ -87,11 +87,16 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
     if (!container) return
     if ('touches' in e) e.preventDefault()
     const rect = container.getBoundingClientRect()
+    // When a CSS scale transform is active (crop preview), getBoundingClientRect returns
+    // scaled dimensions. Divide dx/dy by the scale so movement tracks the pointer correctly.
+    const trueW = parseFloat(container.dataset.trueWidth ?? '0') || container.offsetWidth
+    const trueH = parseFloat(container.dataset.trueHeight ?? '0') || container.offsetHeight
+    const scale = trueW > 0 ? rect.width / trueW : 1
     const { clientX, clientY } = getEventCoords(e)
-    const dx = clientX - dragState.current.startX
-    const dy = clientY - dragState.current.startY
-    const newX = Math.max(0, Math.min(rect.width - layer.width, dragState.current.origX + dx))
-    const newY = Math.max(0, Math.min(rect.height - layer.fontSize * 1.4, dragState.current.origY + dy))
+    const dx = (clientX - dragState.current.startX) / scale
+    const dy = (clientY - dragState.current.startY) / scale
+    const newX = Math.max(0, Math.min(trueW - layer.width, dragState.current.origX + dx))
+    const newY = Math.max(0, Math.min(trueH - layer.fontSize * 1.4, dragState.current.origY + dy))
     dragState.current.lastX = newX
     dragState.current.lastY = newY
     onMove({ x: newX, y: newY })
@@ -122,8 +127,12 @@ export default function TextLayer({ layer, isSelected, onSelect, onChange, onMov
   function onResizeMove(e: MouseEvent | TouchEvent) {
     if (!resizeState.current) return
     if ('touches' in e) e.preventDefault()
+    const container = containerRef.current
+    const trueW = container ? parseFloat(container.dataset.trueWidth ?? '0') || container.offsetWidth : 0
+    const scaledW = container ? container.getBoundingClientRect().width : trueW
+    const scale = trueW > 0 ? scaledW / trueW : 1
     const { clientX } = getEventCoords(e)
-    const dx = clientX - resizeState.current.startX
+    const dx = (clientX - resizeState.current.startX) / scale
     const newWidth = Math.max(80, resizeState.current.origWidth + dx)
     const newFontSize = Math.max(14, Math.min(80, resizeState.current.origFontSize + Math.round(dx / 8)))
     resizeState.current.lastWidth = newWidth
