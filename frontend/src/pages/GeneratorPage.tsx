@@ -326,14 +326,17 @@ export default function GeneratorPage() {
       const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/png'))
       if (!blob) return
       const file = new File([blob], `meme-hummus-${template.id}.png`, { type: 'image/png' })
+
+      // On mobile the Web Share API sends the file directly to WhatsApp.
+      // On desktop it's not supported for files, so download + open wa.me instead.
       if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: template.name || 'מֵם' })
+        await navigator.share({ files: [file] })
       } else {
         const link = document.createElement('a')
         link.download = `meme-hummus-${template.id}.png`
         link.href = canvas.toDataURL('image/png')
         link.click()
-        setTimeout(() => window.open('https://web.whatsapp.com', '_blank', 'noopener,noreferrer'), 500)
+        window.open('https://wa.me/', '_blank', 'noopener,noreferrer')
       }
     } catch (e) {
       if ((e as Error).name !== 'AbortError') console.error('WhatsApp share failed', e)
@@ -364,7 +367,7 @@ export default function GeneratorPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 md:px-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 overflow-x-hidden px-4 py-6 md:px-6">
         <button
           onClick={() => navigate(-1)}
           className="mb-6 flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
@@ -374,8 +377,53 @@ export default function GeneratorPage() {
         </button>
 
         <div className="flex flex-col gap-6 lg:flex-row">
-          {/* Left column: editor + save/share row */}
+          {/* Left column: toolbar + editor + save/share row */}
           <div className="flex w-full flex-col gap-3 lg:w-3/5">
+            {/* Compact icon toolbar above the image */}
+            <div className="flex items-center gap-2 rounded-xl bg-surface-container p-3">
+              <button
+                onClick={addText}
+                title="הוסף טקסט"
+                className="flex flex-1 flex-col items-center gap-1 rounded-lg bg-primary py-2.5 text-on-primary hover:bg-primary/90 transition-colors"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="text-[10px] font-bold">טקסט</span>
+              </button>
+
+              <button
+                onClick={toggleDank}
+                title="פס דאנק"
+                className={`flex flex-1 flex-col items-center gap-1 rounded-lg py-2.5 transition-colors ${
+                  dankStrip
+                    ? 'bg-secondary text-on-secondary hover:bg-secondary/90'
+                    : 'bg-surface-high text-on-surface hover:bg-surface-highest'
+                }`}
+              >
+                <Flame className="h-5 w-5" />
+                <span className="text-[10px] font-bold">דאנק</span>
+              </button>
+
+              <button
+                onClick={undo}
+                disabled={!canUndo()}
+                title="בטל (Ctrl+Z)"
+                className="flex flex-1 flex-col items-center gap-1 rounded-lg border border-outline-variant bg-surface-high py-2.5 text-on-surface transition-colors hover:bg-surface-highest disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Undo2 className="h-5 w-5" />
+                <span className="text-[10px] font-bold">בטל</span>
+              </button>
+
+              <button
+                onClick={redo}
+                disabled={!canRedo()}
+                title="חזור (Ctrl+Y)"
+                className="flex flex-1 flex-col items-center gap-1 rounded-lg border border-outline-variant bg-surface-high py-2.5 text-on-surface transition-colors hover:bg-surface-highest disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Redo2 className="h-5 w-5" />
+                <span className="text-[10px] font-bold">חזור</span>
+              </button>
+            </div>
+
             {/* overflow:clip keeps rounded corners visually without creating a stacking-context clipping box that html2canvas misreads */}
             <div className="rounded-xl shadow-card" style={{ overflow: 'clip' }}>
               <MemeEditor
@@ -398,92 +446,53 @@ export default function GeneratorPage() {
               <button
                 onClick={handleDownload}
                 disabled={downloading}
+                title="הורד מֵם"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-secondary py-3 text-sm font-bold text-on-secondary hover:bg-secondary/90 transition-colors disabled:opacity-60"
               >
-                <Download className="h-4 w-4" />
-                {downloading ? 'מוריד...' : 'הורד'}
+                <Download className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">{downloading ? 'מוריד...' : 'הורד'}</span>
               </button>
 
               <button
                 onClick={handleCopyImage}
                 disabled={copyStatus !== 'idle'}
+                title="העתק תמונה"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-high py-3 text-sm font-bold text-on-surface hover:bg-surface-highest transition-colors disabled:opacity-60"
               >
-                <Copy className="h-4 w-4" />
-                {copyStatus === 'copying' ? 'מעתיק...' : copyStatus === 'copied' ? '✓ הועתק' : 'העתק'}
+                <Copy className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline">
+                  {copyStatus === 'copying' ? 'מעתיק...' : copyStatus === 'copied' ? '✓ הועתק' : 'העתק'}
+                </span>
               </button>
 
               {typeof navigator.share === 'function' && (
                 <button
                   onClick={handleNativeShare}
                   disabled={sharing}
+                  title="שתף"
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface-high py-3 text-sm font-bold text-on-surface hover:bg-surface-highest transition-colors disabled:opacity-60"
                 >
-                  <Share2 className="h-4 w-4" />
-                  שתף
+                  <Share2 className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">שתף</span>
                 </button>
               )}
 
               <button
                 onClick={handleWhatsApp}
                 disabled={sharing}
+                title="שתף בוואטסאפ"
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-colors disabled:opacity-60"
                 style={{ backgroundColor: '#25D366', color: '#fff' }}
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                 </svg>
-                וואטסאפ
+                <span className="hidden sm:inline">וואטסאפ</span>
               </button>
             </div>
           </div>
 
           <div className="flex w-full flex-col gap-3 lg:w-2/5">
-            <div className="rounded-xl bg-surface-container p-4">
-              <h2 className="mb-3 text-sm font-bold text-on-surface">כלים</h2>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={addText}
-                  className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-on-primary hover:bg-primary/90 transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                  הוסף טקסט
-                </button>
-
-                <button
-                  onClick={toggleDank}
-                  className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-colors ${
-                    dankStrip
-                      ? 'bg-secondary text-on-secondary hover:bg-secondary/90'
-                      : 'bg-surface-high text-on-surface hover:bg-surface-highest'
-                  }`}
-                >
-                  <Flame className="h-4 w-4" />
-                  {dankStrip ? 'הסר פס דאנק' : 'פס דאנק'}
-                </button>
-
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={undo}
-                    disabled={!canUndo()}
-                    title="בטל (Ctrl+Z)"
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-high px-3 py-2 text-xs font-bold text-on-surface transition-colors hover:bg-surface-highest disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Undo2 className="h-3.5 w-3.5" />
-                    בטל
-                  </button>
-                  <button
-                    onClick={redo}
-                    disabled={!canRedo()}
-                    title="בצע שוב (Ctrl+Y)"
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-outline-variant bg-surface-high px-3 py-2 text-xs font-bold text-on-surface transition-colors hover:bg-surface-highest disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    <Redo2 className="h-3.5 w-3.5" />
-                    חזור
-                  </button>
-                </div>
-              </div>
-            </div>
 
             {selectedLayer && (
               <div className="rounded-xl bg-surface-container p-4">

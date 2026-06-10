@@ -36,7 +36,7 @@ export default function MemeEditor({
   }
 
   return (
-    <div ref={editorRef} style={{ display: 'inline-block', width: '100%', userSelect: 'none' }}>
+    <div ref={editorRef} style={{ display: 'block', width: '100%', maxWidth: '100%', userSelect: 'none' }}>
       {dankStrip && (
         <div
           style={{
@@ -88,7 +88,7 @@ export default function MemeEditor({
             src={imageUrl}
             alt="meme template"
             crossOrigin="anonymous"
-            style={{ width: '100%', display: 'block' }}
+            style={{ width: '100%', maxWidth: '100%', display: 'block' }}
           />
         ) : (
           <div style={{ width: '100%', aspectRatio: '1 / 1', background: '#ffffff', display: 'block' }} />
