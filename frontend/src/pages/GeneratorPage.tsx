@@ -501,8 +501,7 @@ export default function GeneratorPage() {
               </button>
             </div>
 
-            {/* overflow:clip keeps rounded corners visually without creating a stacking-context clipping box that html2canvas misreads */}
-            <div className="rounded-xl shadow-card" style={{ overflow: 'clip' }}>
+            <div className="shadow-card">
               <MemeEditor
                 imageUrl={template.imageUrl}
                 textLayers={textLayers}
