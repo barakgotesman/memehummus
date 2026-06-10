@@ -14,7 +14,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef<HTMLDivElement>(null)
-  const { user, isAdmin, signInWithGoogle, signOut } = useAuth()
+  const { user, isAdmin, loading: authLoading, signInWithGoogle, signOut } = useAuth()
   const { dark, toggle: toggleTheme } = useTheme()
 
   useEffect(() => {
@@ -68,7 +68,9 @@ export default function Navbar() {
               <Search className="h-5 w-5" />
             </button>
 
-            {user ? (
+            {authLoading ? (
+              <div className="h-8 w-8 rounded-full bg-surface-high animate-pulse" />
+            ) : user ? (
               /* Avatar only shown on desktop — mobile uses BottomNav "אני" tab */
               <div className="relative hidden md:block" ref={userMenuRef}>
                 <button

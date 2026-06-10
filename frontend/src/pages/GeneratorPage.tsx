@@ -439,7 +439,7 @@ export default function GeneratorPage() {
     return (
       <div className="flex min-h-screen flex-col bg-background" dir="rtl">
         <Navbar />
-        <main className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+        <main className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center gap-4 px-4 py-6 sm:gap-8 sm:px-6 sm:py-12">
           {/* Hidden file input */}
           <input
             ref={uploadInputRef}
@@ -450,7 +450,7 @@ export default function GeneratorPage() {
           />
 
           {/* Hummus meme mascot */}
-          <svg width="340" height="210" viewBox="-50 0 340 195" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <svg width="220" height="136" className="sm:w-[340px] sm:h-[210px]" viewBox="-50 0 340 195" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs>
               <style>{`
                 @keyframes swingLeft {
@@ -563,30 +563,30 @@ export default function GeneratorPage() {
           </svg>
 
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-on-surface">יצירת מֵם</h1>
-            <p className="mt-1 text-sm text-on-surface-variant">בחר כיצד להתחיל</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-on-surface">יצירת מֵם</h1>
+            <p className="mt-0.5 text-xs sm:text-sm text-on-surface-variant">בחר כיצד להתחיל</p>
           </div>
 
-          <div className="flex w-full flex-col gap-4 sm:flex-row">
+          <div className="flex w-full flex-row gap-3">
             <button
               onClick={handleChooseUpload}
-              className="flex flex-1 flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-primary bg-primary-container/30 px-6 py-10 text-on-primary-container transition-colors hover:bg-primary-container/50"
+              className="flex flex-1 flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-primary bg-primary-container/30 px-3 py-5 sm:gap-4 sm:px-6 sm:py-10 text-on-primary-container transition-colors hover:bg-primary-container/50"
             >
-              <ImageUp className="h-10 w-10 text-primary" />
+              <ImageUp className="h-7 w-7 sm:h-10 sm:w-10 text-primary" />
               <div className="text-center">
-                <p className="text-base font-bold">העלה תמונה</p>
-                <p className="mt-0.5 text-xs text-on-surface-variant">מהגלריה או מהמחשב</p>
+                <p className="text-sm sm:text-base font-bold">העלה תמונה</p>
+                <p className="mt-0.5 text-xs text-on-surface-variant hidden sm:block">מהגלריה או מהמחשב</p>
               </div>
             </button>
 
             <button
               onClick={handleChooseBlank}
-              className="flex flex-1 flex-col items-center gap-4 rounded-2xl border-2 border-outline-variant bg-surface-container px-6 py-10 text-on-surface transition-colors hover:bg-surface-high"
+              className="flex flex-1 flex-col items-center gap-2 rounded-2xl border-2 border-outline-variant bg-surface-container px-3 py-5 sm:gap-4 sm:px-6 sm:py-10 text-on-surface transition-colors hover:bg-surface-high"
             >
-              <SquareDashedBottom className="h-10 w-10 text-on-surface-variant" />
+              <SquareDashedBottom className="h-7 w-7 sm:h-10 sm:w-10 text-on-surface-variant" />
               <div className="text-center">
-                <p className="text-base font-bold">תבנית ריקה</p>
-                <p className="mt-0.5 text-xs text-on-surface-variant">התחל מבד לבן</p>
+                <p className="text-sm sm:text-base font-bold">תבנית ריקה</p>
+                <p className="mt-0.5 text-xs text-on-surface-variant hidden sm:block">התחל מבד לבן</p>
               </div>
             </button>
           </div>
