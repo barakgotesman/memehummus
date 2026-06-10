@@ -5,15 +5,17 @@ import { useTheme } from '@/context/ThemeContext'
 import TemplatesPage from '@/pages/admin/TemplatesPage'
 import TagsPage from '@/pages/admin/TagsPage'
 import SuggestionsPage from '@/pages/admin/SuggestionsPage'
+import ContactSubmissionsPage from '@/pages/admin/ContactSubmissionsPage'
 import { Sun, Moon, LogOut, Globe, Menu, X } from 'lucide-react'
 
 const NAV_ITEMS = [
   { id: 'templates', label: 'ניהול תבניות', icon: '🖼️' },
   { id: 'tags', label: 'ניהול תגיות', icon: '🏷️' },
   { id: 'suggestions', label: 'הצעות תבניות', icon: '💡' },
+  { id: 'contact', label: 'פניות צור קשר', icon: '✉️' },
 ]
 
-type SectionId = 'templates' | 'tags' | 'suggestions'
+type SectionId = 'templates' | 'tags' | 'suggestions' | 'contact'
 
 interface SidebarContentProps {
   active: SectionId
@@ -201,6 +203,7 @@ export default function AdminPage() {
           {activeSection === 'templates' && <TemplatesPage getToken={getToken} />}
           {activeSection === 'tags' && <TagsPage getToken={getToken} />}
           {activeSection === 'suggestions' && <SuggestionsPage getToken={getToken} />}
+          {activeSection === 'contact' && <ContactSubmissionsPage getToken={getToken} />}
         </div>
       </main>
     </div>

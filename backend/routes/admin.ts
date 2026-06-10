@@ -9,6 +9,7 @@ import {
 import { listTemplates } from '../services/templates.js'
 import { listTags, createTag, updateTag, deleteTag } from '../services/tags.js'
 import { listSuggestions, updateSuggestionStatus, approveSuggestion } from '../services/suggestions.js'
+import { listContactSubmissions, setContactRead } from '../services/contact.js'
 
 const router = Router()
 
@@ -123,6 +124,24 @@ router.post('/upload-url', async (req: Request, res: Response, next: NextFunctio
   try {
     const result = await getUploadUrl((req.body as { fileName?: string }).fileName)
     res.json(result)
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.get('/contact', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.json(await listContactSubmissions())
+  } catch (err) {
+    next(err)
+  }
+})
+
+router.patch('/contact/:id/read', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { read } = req.body as { read?: boolean }
+    if (typeof read !== 'boolean') { res.status(400).json({ error: 'read must be a boolean' }); return }
+    res.json(await setContactRead(req.params.id, read))
   } catch (err) {
     next(err)
   }

@@ -5,6 +5,7 @@ import templatesRouter from './routes/templates.js'
 import tagsRouter from './routes/tags.js'
 import adminRouter from './routes/admin.js'
 import suggestionsRouter from './routes/suggestions.js'
+import contactRouter from './routes/contact.js'
 import { errorHandler } from './middleware/error.js'
 
 export const app = express()
@@ -21,6 +22,7 @@ app.use(express.json())
 app.use('/api/templates', templatesRouter)
 app.use('/api/tags', tagsRouter)
 app.use('/api/suggestions', suggestionsRouter)
+app.use('/api/contact', contactRouter)
 app.use('/api/admin', adminRouter)
 
 app.use(errorHandler)
