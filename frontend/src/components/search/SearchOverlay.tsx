@@ -79,16 +79,17 @@ export default function SearchOverlay({ onClose }: SearchOverlayProps) {
               className="flex-1 bg-transparent text-base font-medium text-on-surface placeholder:text-on-surface-variant outline-none"
             />
             {query && (
-              <button type="button" onClick={() => setQuery('')} className="text-on-surface-variant hover:text-on-surface transition-colors">
-                <X className="h-4 w-4" />
+              <button type="button" onClick={() => setQuery('')} className="shrink-0 text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-colors">
+                נקה
               </button>
             )}
           </form>
           <button
             onClick={onClose}
-            className="flex items-center gap-1.5 rounded-full border border-outline-variant px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-high transition-colors"
+            aria-label="סגור חיפוש"
+            className="flex items-center justify-center rounded-full border border-outline-variant p-2 text-on-surface-variant hover:bg-surface-high transition-colors"
           >
-            <span>ESC</span>
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>
