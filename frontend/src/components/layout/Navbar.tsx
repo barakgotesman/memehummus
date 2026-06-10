@@ -1,4 +1,5 @@
 import { Search, LogOut, ShieldCheck, ChevronDown, Sun, Moon } from 'lucide-react'
+import HummusBowl from '@/components/ui/HummusBowl'
 import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -32,7 +33,7 @@ export default function Navbar() {
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 md:px-6">
 
           <a href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="Meme Hummus" className="h-9 w-9 object-contain" />
+            <HummusBowl size={56} />
             <span className="text-xl font-extrabold tracking-tight text-on-surface">
               Meme <span className="text-primary-container">Hummus</span>
             </span>

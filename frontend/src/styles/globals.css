@@ -12,6 +12,7 @@
   pointer-events: none;
   direction: rtl;
   unicode-bidi: plaintext;
+  white-space: nowrap;
 }
 
 @layer base {

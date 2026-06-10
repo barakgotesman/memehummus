@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { ArrowRight, Download, Plus, Flame, Trash2, Copy, Share2, Bold, Italic, Underline, Undo2, Redo2, Crop } from 'lucide-react'
+import { ArrowRight, Download, Plus, Flame, Trash2, Copy, Share2, Bold, Italic, Underline, Undo2, Redo2, Crop, ImageUp, SquareDashedBottom } from 'lucide-react'
 import { useHistory } from '@/hooks/useHistory'
 import { api } from '@/lib/api'
 import Navbar from '@/components/layout/Navbar'
@@ -17,7 +17,7 @@ let nextId = 1
 const DEFAULT_FONT = "'Secular One', sans-serif"
 
 function makeLayer(x = 40, y = 40, color = '#ffffff'): TextLayer {
-  return { id: nextId++, text: '', x, y, width: 200, fontSize: 36, color, fontFamily: DEFAULT_FONT, bold: false, italic: false, underline: false }
+  return { id: nextId++, text: '', x, y, width: 200, fontSize: 26, color, fontFamily: DEFAULT_FONT, bold: false, italic: false, underline: false }
 }
 
 type CopyStatus = 'idle' | 'copying' | 'copied'
@@ -27,18 +27,50 @@ export default function GeneratorPage() {
   const navigate = useNavigate()
   const [template, setTemplate] = useState<Template | null>(null)
   const [loadingTemplate, setLoadingTemplate] = useState(true)
+  // null = picker not yet shown (only relevant when id is undefined)
+  // 'picking' = showing the two-option picker
+  // 'ready' = user made a choice, show editor
+  const [createMode, setCreateMode] = useState<'picking' | 'ready'>(id ? 'ready' : 'picking')
+  const uploadInputRef = useRef<HTMLInputElement>(null)
+  // Tracks object URLs created from file uploads so we can revoke on cleanup
+  const uploadedUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (!id) {
-      setTemplate({ id: 'blank', name: 'ריק', imageUrl: null as unknown as string, file_path: '', tags: [], download_count: 0 })
+    if (id) {
+      setCreateMode('ready')
+      api.getTemplate(id)
+        .then(setTemplate)
+        .catch(() => setTemplate(null))
+        .finally(() => setLoadingTemplate(false))
+    } else {
       setLoadingTemplate(false)
-      return
     }
-    api.getTemplate(id)
-      .then(setTemplate)
-      .catch(() => setTemplate(null))
-      .finally(() => setLoadingTemplate(false))
+    return () => {
+      if (uploadedUrlRef.current) {
+        URL.revokeObjectURL(uploadedUrlRef.current)
+        uploadedUrlRef.current = null
+      }
+    }
   }, [id])
+
+  function handleChooseBlank() {
+    setTemplate({ id: 'blank', name: 'ריק', imageUrl: null as unknown as string, file_path: '', tags: [], download_count: 0 })
+    setCreateMode('ready')
+  }
+
+  function handleChooseUpload() {
+    uploadInputRef.current?.click()
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (uploadedUrlRef.current) URL.revokeObjectURL(uploadedUrlRef.current)
+    const url = URL.createObjectURL(file)
+    uploadedUrlRef.current = url
+    setTemplate({ id: 'upload', name: file.name, imageUrl: url, file_path: '', tags: [], download_count: 0 })
+    setCreateMode('ready')
+  }
 
   const { current: textLayers, set: setTextLayers, setSilent: moveTextLayers, undo, redo, canUndo, canRedo, reset: resetLayers } = useHistory<TextLayer[]>([])
   const [dankStrip, setDankStrip] = useState<DankStrip | null>(null)
@@ -84,7 +116,7 @@ export default function GeneratorPage() {
     const cropH = cropRegion?.height ?? containerH
     const y = Math.round(cropOffsetY + cropH * slots[textLayers.length % slots.length])
 
-    const defaultColor = template?.imageUrl ? '#ffffff' : '#000000'
+    const defaultColor = '#ffffff'
     const layer = { ...makeLayer(cropRegion?.x ?? 40, y, defaultColor), fontSize: baseFontSize }
     setTextLayers(prev => [...prev, layer])
     setSelectedId(layer.id)
@@ -403,6 +435,168 @@ export default function GeneratorPage() {
     )
   }
 
+  if (createMode === 'picking') {
+    return (
+      <div className="flex min-h-screen flex-col bg-background" dir="rtl">
+        <Navbar />
+        <main className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+          {/* Hidden file input */}
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          {/* Hummus meme mascot */}
+          <svg width="340" height="210" viewBox="-50 0 340 195" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <style>{`
+                @keyframes swingLeft {
+                  0%,100% { transform: rotate(-30deg); }
+                  50%      { transform: rotate(10deg);  }
+                }
+                @keyframes swingRight {
+                  0%,100% { transform: rotate(30deg);  }
+                  50%      { transform: rotate(-10deg); }
+                }
+                .pita-left-anim {
+                  transform-box: fill-box;
+                  transform-origin: 50% 100%;
+                  animation: swingLeft 1.6s ease-in-out infinite;
+                }
+                .pita-right-anim {
+                  transform-box: fill-box;
+                  transform-origin: 50% 100%;
+                  animation: swingRight 1.6s ease-in-out infinite;
+                }
+              `}</style>
+            </defs>
+
+            {/* ── PITA LEFT ── */}
+            <g transform="translate(2, 58)">
+              <g className="pita-left-anim">
+                <ellipse cx="38" cy="42" rx="28" ry="8" fill="#D4B84A"/>
+                <ellipse cx="38" cy="36" rx="28" ry="34" fill="#F5E07A"/>
+                <ellipse cx="38" cy="36" rx="28" ry="34" fill="none" stroke="#C9A030" strokeWidth="1.8"/>
+                <ellipse cx="30" cy="28" rx="5" ry="3.5" fill="#D4A830" opacity="0.5" transform="rotate(-15 30 28)"/>
+                <ellipse cx="46" cy="44" rx="4" ry="3" fill="#D4A830" opacity="0.4" transform="rotate(10 46 44)"/>
+                <ellipse cx="38" cy="18" rx="3.5" ry="2.5" fill="#C9A030" opacity="0.4"/>
+                <path d="M22 10 Q38 4 54 10" stroke="#C9A030" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                <ellipse cx="38" cy="70" rx="28" ry="8" fill="#E8CC60" stroke="#C9A030" strokeWidth="1.2"/>
+              </g>
+            </g>
+
+            {/* ── BOWL (center) ── */}
+            <ellipse cx="120" cy="150" rx="50" ry="7" fill="#00000012"/>
+            <path d="M70 95 Q68 138 120 140 Q172 138 170 95 Z" fill="#EDD9A3"/>
+            <ellipse cx="120" cy="95" rx="50" ry="13" fill="#F7EDCA"/>
+            <ellipse cx="120" cy="95" rx="50" ry="13" fill="none" stroke="#C9A84C" strokeWidth="2"/>
+            {/* hummus surface */}
+            <ellipse cx="120" cy="95" rx="44" ry="10" fill="#D4A843"/>
+
+            {/* ── OLIVE OIL pool ── */}
+            <ellipse cx="122" cy="95" rx="16" ry="6" fill="#C8960A" opacity="0.75"/>
+            {/* oil drizzle lines */}
+            <path d="M106 93 Q114 90 122 93 Q130 96 138 93" stroke="#E8B820" strokeWidth="1.6" strokeLinecap="round" fill="none" opacity="0.9"/>
+            <path d="M110 97 Q118 94 126 97" stroke="#E8B820" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity="0.8"/>
+
+            {/* ── PAPRIKA dust ── lots of it, spread across surface */}
+            <circle cx="97"  cy="92" r="2.8" fill="#D0321B"/>
+            <circle cx="102" cy="98" r="2.2" fill="#C0392B"/>
+            <circle cx="109" cy="103" r="2.0" fill="#D0321B"/>
+            <circle cx="140" cy="91" r="2.5" fill="#C0392B"/>
+            <circle cx="135" cy="99" r="2.0" fill="#D0321B"/>
+            <circle cx="142" cy="97" r="1.8" fill="#C0392B"/>
+            <circle cx="150" cy="94" r="2.2" fill="#D0321B"/>
+            <circle cx="94"  cy="97" r="1.8" fill="#C0392B"/>
+            {/* paprika smudge/dust cloud */}
+            <ellipse cx="98" cy="94" rx="7" ry="3" fill="#C0392B" opacity="0.18"/>
+            <ellipse cx="143" cy="95" rx="8" ry="3" fill="#C0392B" opacity="0.18"/>
+
+            {/* ── ONION RINGS on the plate ── */}
+            <g transform="translate(88, 83)">
+              <ellipse cx="0" cy="0" rx="10" ry="5" fill="none" stroke="#D4A0C0" strokeWidth="2"/>
+              <ellipse cx="0" cy="0" rx="6.5" ry="3" fill="none" stroke="#C890B0" strokeWidth="1.5"/>
+              <ellipse cx="0" cy="0" rx="3" ry="1.5" fill="none" stroke="#B87090" strokeWidth="1.2"/>
+            </g>
+
+            {/* ── SHIFKA lying on the plate ── */}
+            <g transform="translate(118, 91) rotate(-8)">
+              <line x1="0" y1="2" x2="4" y2="1" stroke="#3a6400" strokeWidth="1.5" strokeLinecap="round"/>
+              <path d="M3 0 Q10 -2 22 -1 Q30 0 34 2 Q30 4 22 5 Q10 6 3 4 Z" fill="#5DB800"/>
+              <path d="M3 0 Q10 -2 22 -1 Q30 0 34 2 Q30 4 22 5 Q10 6 3 4 Z" fill="none" stroke="#3d8a00" strokeWidth="0.8"/>
+              <path d="M5 1 Q16 -1 28 1" stroke="#8ed640" strokeWidth="0.9" strokeLinecap="round" fill="none"/>
+              <path d="M34 2 Q37 1 38 3" stroke="#4a9a00" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+            </g>
+
+            {/* parsley */}
+            <circle cx="130" cy="103" r="1.8" fill="#27AE60"/>
+            <circle cx="105" cy="90"  r="1.5" fill="#27AE60"/>
+
+            {/* meme face on the bowl front */}
+            <circle cx="108" cy="120" r="7" fill="white"/>
+            <circle cx="132" cy="120" r="7" fill="white"/>
+            <circle cx="110" cy="120" r="4" fill="#222"/>
+            <circle cx="134" cy="120" r="4" fill="#222"/>
+            <circle cx="111.5" cy="118.5" r="1.5" fill="white"/>
+            <circle cx="135.5" cy="118.5" r="1.5" fill="white"/>
+            <path d="M112 127 Q120 134 128 127" stroke="#222" strokeWidth="2.5" strokeLinecap="round" fill="none"/>
+
+            {/* ── PITA RIGHT ── */}
+            <g transform="translate(160, 58)">
+              <g className="pita-right-anim">
+                <ellipse cx="38" cy="42" rx="28" ry="8" fill="#D4B84A"/>
+                <ellipse cx="38" cy="36" rx="28" ry="34" fill="#F5E07A"/>
+                <ellipse cx="38" cy="36" rx="28" ry="34" fill="none" stroke="#C9A030" strokeWidth="1.8"/>
+                <ellipse cx="26" cy="30" rx="5" ry="3.5" fill="#D4A830" opacity="0.5" transform="rotate(15 26 30)"/>
+                <ellipse cx="44" cy="46" rx="4" ry="3" fill="#D4A830" opacity="0.4" transform="rotate(-10 44 46)"/>
+                <ellipse cx="38" cy="18" rx="3.5" ry="2.5" fill="#C9A030" opacity="0.4"/>
+                <path d="M22 10 Q38 4 54 10" stroke="#C9A030" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                <ellipse cx="38" cy="70" rx="28" ry="8" fill="#E8CC60" stroke="#C9A030" strokeWidth="1.2"/>
+              </g>
+            </g>
+
+            <text x="155" y="30" fontSize="13" textAnchor="middle">✨</text>
+            <text x="120" y="22" fontSize="15" textAnchor="middle">😂</text>
+          </svg>
+
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-on-surface">יצירת מֵם</h1>
+            <p className="mt-1 text-sm text-on-surface-variant">בחר כיצד להתחיל</p>
+          </div>
+
+          <div className="flex w-full flex-col gap-4 sm:flex-row">
+            <button
+              onClick={handleChooseUpload}
+              className="flex flex-1 flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-primary bg-primary-container/30 px-6 py-10 text-on-primary-container transition-colors hover:bg-primary-container/50"
+            >
+              <ImageUp className="h-10 w-10 text-primary" />
+              <div className="text-center">
+                <p className="text-base font-bold">העלה תמונה</p>
+                <p className="mt-0.5 text-xs text-on-surface-variant">מהגלריה או מהמחשב</p>
+              </div>
+            </button>
+
+            <button
+              onClick={handleChooseBlank}
+              className="flex flex-1 flex-col items-center gap-4 rounded-2xl border-2 border-outline-variant bg-surface-container px-6 py-10 text-on-surface transition-colors hover:bg-surface-high"
+            >
+              <SquareDashedBottom className="h-10 w-10 text-on-surface-variant" />
+              <div className="text-center">
+                <p className="text-base font-bold">תבנית ריקה</p>
+                <p className="mt-0.5 text-xs text-on-surface-variant">התחל מבד לבן</p>
+              </div>
+            </button>
+          </div>
+        </main>
+        <Footer />
+        <BottomNav />
+      </div>
+    )
+  }
+
   if (!template) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -418,13 +612,23 @@ export default function GeneratorPage() {
       <Navbar />
 
       <main className="mx-auto w-full max-w-5xl flex-1 overflow-x-hidden px-4 py-6 md:px-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="mb-6 flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
-        >
-          <ArrowRight className="h-4 w-4" />
-          חזור לתבניות
-        </button>
+        {!id ? (
+          <button
+            onClick={() => setCreateMode('picking')}
+            className="mb-6 flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+          >
+            <ArrowRight className="h-4 w-4" />
+            חזור לבחירה
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 flex items-center gap-2 text-sm font-bold text-primary hover:text-primary/80 transition-colors"
+          >
+            <ArrowRight className="h-4 w-4" />
+            חזור לתבניות
+          </button>
+        )}
 
         <div className="flex flex-col gap-6 lg:flex-row">
           {/* Left column: toolbar + editor + save/share row */}
