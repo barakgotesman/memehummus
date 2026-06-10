@@ -48,17 +48,17 @@
 
 @layer base {
   .dark {
-    --background: #1a1210;
+    --background: #141010;
     --foreground: #ede0dc;
-    --surface: #1a1210;
-    --surface-low: #231a17;
-    --surface-container: #2c211d;
-    --surface-high: #382a25;
-    --surface-highest: #44332d;
-    --on-surface: #ede0dc;
-    --on-surface-variant: #d4c4ad;
-    --outline: #a8927e;
-    --outline-variant: #504534;
+    --surface: #141010;
+    --surface-low: #1e1714;
+    --surface-container: #252019;  /* panels, sidebars */
+    --surface-high: #332620;       /* cards — clearly lifted off background */
+    --surface-highest: #3f3028;    /* hover states, active pills */
+    --on-surface: #f0e0d8;
+    --on-surface-variant: #c8b49a;
+    --outline: #6e5c4a;
+    --outline-variant: #3d2f26;
     --primary: #f5b82e;
     --primary-container: #7b5800;
     --on-primary: #201a18;
@@ -80,4 +80,10 @@
     font-family: 'Heebo', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+}
+
+@layer utilities {
+  /* Override card shadows in dark mode — warm-brown shadows disappear on dark bg */
+  .dark .shadow-card { box-shadow: 0 2px 8px 0 rgba(0,0,0,0.5); }
+  .dark .shadow-card-hover { box-shadow: 0 6px 20px 0 rgba(0,0,0,0.65); }
 }

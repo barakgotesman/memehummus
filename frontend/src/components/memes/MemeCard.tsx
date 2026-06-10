@@ -12,7 +12,7 @@ export default function MemeCard({ template }: MemeCardProps) {
 
   return (
     <div
-      className="group relative flex flex-col overflow-hidden rounded-lg bg-white shadow-card hover:shadow-card-hover transition-shadow duration-200 cursor-pointer"
+      className="group relative flex flex-col overflow-hidden rounded-lg bg-white dark:bg-surface-high shadow-card hover:shadow-card-hover transition-shadow duration-200 cursor-pointer"
       onClick={() => navigate(`/template/${id}`)}
     >
       <div className="relative overflow-hidden bg-surface-high">

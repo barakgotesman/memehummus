@@ -5,7 +5,7 @@ export default function HeroSection() {
         <img
           src="/logo.png"
           alt="Meme Hummus"
-          className="w-40 h-40 md:w-56 md:h-56 object-contain mix-blend-multiply"
+          className="w-40 h-40 md:w-56 md:h-56 object-contain mix-blend-multiply dark:mix-blend-normal rounded-2xl dark:shadow-[0_0_40px_8px_rgba(245,184,46,0.18)]"
         />
       </div>
 
