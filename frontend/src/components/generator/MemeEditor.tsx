@@ -70,6 +70,7 @@ export default function MemeEditor({
 
       <div
         ref={containerRef}
+        data-meme-container
         style={{ position: 'relative', display: 'block', lineHeight: 0 }}
         onClick={deselectAll}
       >
@@ -84,7 +85,9 @@ export default function MemeEditor({
           <div style={{ width: '100%', aspectRatio: '1 / 1', background: '#ffffff', display: 'block' }} />
         )}
 
+        {/* data-html2canvas-ignore: watermark is drawn directly on the canvas in captureCanvas() */}
         <div
+          data-html2canvas-ignore="true"
           style={{
             position: 'absolute',
             bottom: 8,

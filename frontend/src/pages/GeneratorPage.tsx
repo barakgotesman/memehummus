@@ -2,7 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { ArrowRight, Download, Plus, Flame, Trash2, Copy, Share2, Bold, Italic, Underline, Undo2, Redo2 } from 'lucide-react'
 import { useHistory } from '@/hooks/useHistory'
-import html2canvas from 'html2canvas'
 import { api } from '@/lib/api'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
@@ -99,22 +98,161 @@ export default function GeneratorPage() {
     setDankStrip(prev => prev ? null : { text: '' })
   }, [])
 
+  /**
+   * Wraps text to fit within maxWidth pixels on the given canvas context.
+   * Respects explicit newlines in the text and word-wraps long lines.
+   */
+  function wrapTextLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const result: string[] = []
+    for (const para of text.split('\n')) {
+      if (!para) { result.push(''); continue }
+      const words = para.split(' ')
+      let line = ''
+      for (const word of words) {
+        const candidate = line ? line + ' ' + word : word
+        if (line && ctx.measureText(candidate).width > maxWidth) {
+          result.push(line)
+          line = word
+        } else {
+          line = candidate
+        }
+      }
+      if (line) result.push(line)
+    }
+    return result.length ? result : ['']
+  }
+
   async function captureCanvas() {
     setSelectedId(null)
     await new Promise(r => setTimeout(r, 80))
-    // x/y in html2canvas are content scroll offsets, not element position — never pass them.
-    // width/height clip overflow (shadows, selection handles) to the element's rendered bounds.
-    const el = editorRef.current!
-    const rect = el.getBoundingClientRect()
-    return html2canvas(el, {
-      useCORS: true,
-      allowTaint: false,
-      scale: 2,
-      backgroundColor: null,
-      logging: false,
-      width: Math.round(rect.width),
-      height: Math.round(rect.height),
-    })
+    await document.fonts.ready
+
+    const editorEl = editorRef.current!
+    // data-meme-container marks the image's positioning context (not the dank strip)
+    const containerEl = editorEl.querySelector('[data-meme-container]') as HTMLElement | null
+    const imgEl = editorEl.querySelector('img[alt="meme template"]') as HTMLImageElement | null
+
+    // Natural image dimensions (export resolution)
+    const naturalW = imgEl?.naturalWidth ?? 800
+    const naturalH = imgEl?.naturalHeight ?? 600
+
+    // Displayed container size — used to scale layer.x/y/width/fontSize to canvas coords
+    const containerRect = (containerEl ?? editorEl).getBoundingClientRect()
+    const containerW = containerRect.width
+    const containerH = containerRect.height
+    const scaleX = naturalW / containerW
+    const scaleY = naturalH / containerH
+
+    // Dank strip: draw above the image with height proportional to its displayed height
+    const dankEl = dankStrip
+      ? (editorEl.querySelector('[data-meme-container]')?.previousElementSibling as HTMLElement | null)
+      : null
+    const dankDisplayH = dankEl ? dankEl.getBoundingClientRect().height : 0
+    const dankCanvasH = Math.round(dankDisplayH * scaleY)
+
+    const canvas = document.createElement('canvas')
+    canvas.width = naturalW
+    canvas.height = naturalH + dankCanvasH
+    const ctx = canvas.getContext('2d')!
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+
+    // Draw dank strip
+    if (dankStrip && dankCanvasH > 0) {
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, naturalW, dankCanvasH)
+      ctx.strokeStyle = '#000'
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(0, dankCanvasH)
+      ctx.lineTo(naturalW, dankCanvasH)
+      ctx.stroke()
+      const dankFontSize = Math.round(22 * scaleY)
+      ctx.save()
+      ctx.font = `bold ${dankFontSize}px Impact, Arial Black, sans-serif`
+      ctx.fillStyle = '#000'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(dankStrip.text, naturalW / 2, dankCanvasH / 2)
+      ctx.restore()
+    }
+
+    // Draw image
+    if (imgEl) {
+      ctx.drawImage(imgEl, 0, dankCanvasH, naturalW, naturalH)
+    } else {
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, dankCanvasH, naturalW, naturalH)
+    }
+
+    // Draw each text layer at proportionally scaled coordinates
+    for (const layer of textLayers) {
+      if (!layer.text.trim()) continue
+
+      const cx = Math.round(layer.x * scaleX)
+      const cy = Math.round(layer.y * scaleY) + dankCanvasH
+      const cw = Math.round(layer.width * scaleX)
+      const fontSize = Math.round(layer.fontSize * scaleY)
+      const lineH = Math.round(fontSize * 1.4)
+
+      ctx.save()
+
+      let fontStr = ''
+      if (layer.bold) fontStr += 'bold '
+      if (layer.italic) fontStr += 'italic '
+      fontStr += `${fontSize}px ${layer.fontFamily}`
+      ctx.font = fontStr
+      // Physical left-to-right coords — Hebrew glyphs render via Unicode bidi automatically
+      ctx.direction = 'ltr'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'top'
+
+      const lines = wrapTextLines(ctx, layer.text, cw)
+      const centerX = cx + cw / 2
+
+      lines.forEach((line, i) => {
+        const ty = cy + i * lineH
+
+        // Black outline via stroke (4 directions)
+        const outlineW = Math.max(1, Math.round(fontSize * 0.08))
+        ctx.strokeStyle = '#000'
+        ctx.lineWidth = outlineW * 2
+        ctx.lineJoin = 'round'
+        ctx.strokeText(line, centerX, ty)
+
+        ctx.fillStyle = layer.color
+        ctx.fillText(line, centerX, ty)
+
+        // Underline: drawn manually since canvas has no text-decoration
+        if (layer.underline) {
+          const tw = ctx.measureText(line).width
+          const uy = ty + fontSize + Math.round(fontSize * 0.08)
+          ctx.strokeStyle = layer.color
+          ctx.lineWidth = Math.max(1, Math.round(fontSize * 0.06))
+          ctx.beginPath()
+          ctx.moveTo(centerX - tw / 2, uy)
+          ctx.lineTo(centerX + tw / 2, uy)
+          ctx.stroke()
+        }
+      })
+
+      ctx.restore()
+    }
+
+    // Watermark
+    ctx.save()
+    ctx.font = `bold ${Math.round(13 * scaleY)}px Arial, sans-serif`
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'
+    ctx.shadowColor = 'rgba(0,0,0,0.6)'
+    ctx.shadowBlur = 3
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 1
+    ctx.direction = 'ltr'
+    ctx.textBaseline = 'bottom'
+    ctx.fillText('@memeHummus', 10, canvas.height - 6)
+    ctx.restore()
+
+    return canvas
   }
 
   async function handleDownload() {
