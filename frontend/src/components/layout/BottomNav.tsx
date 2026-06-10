@@ -57,6 +57,7 @@ export default function BottomNav() {
             <img
               src={user.photoURL ?? ''}
               alt={user.displayName ?? ''}
+              referrerPolicy="no-referrer"
               className="h-5 w-5 rounded-full object-cover border border-outline-variant"
             />
           ) : (

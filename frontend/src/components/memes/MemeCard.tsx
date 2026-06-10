@@ -19,8 +19,11 @@ export default function MemeCard({ template }: MemeCardProps) {
         <img
           src={imageUrl}
           alt={name}
-          className="w-full h-auto block transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-auto block transition-transform duration-300 group-hover:scale-105 select-none"
           loading="lazy"
+          draggable={false}
+          onContextMenu={e => e.preventDefault()}
+          onDragStart={e => e.preventDefault()}
         />
 
         <div className="absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/40 to-transparent">

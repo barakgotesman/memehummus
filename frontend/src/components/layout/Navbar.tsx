@@ -78,6 +78,7 @@ export default function Navbar() {
                   <img
                     src={user.photoURL ?? ''}
                     alt={user.displayName ?? ''}
+                    referrerPolicy="no-referrer"
                     className="h-8 w-8 rounded-full object-cover border border-outline-variant"
                   />
                   {/* Chevron only visible on desktop */}

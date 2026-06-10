@@ -210,7 +210,7 @@ export default function MemeEditor({
           onTouchStart={onCropPointerDown}
         >
           {imageUrl
-            ? <img src={imageUrl} alt="meme template" crossOrigin="anonymous" style={{ width: '100%', maxWidth: '100%', display: 'block' }} />
+            ? <img src={imageUrl} alt="meme template" crossOrigin="anonymous" draggable={false} onContextMenu={e => e.preventDefault()} onDragStart={e => e.preventDefault()} style={{ width: '100%', maxWidth: '100%', display: 'block', userSelect: 'none', WebkitUserDrag: 'none' } as React.CSSProperties} />
             : <div style={{ width: '100%', aspectRatio: '1 / 1', background: '#ffffff', display: 'block' }} />
           }
 
